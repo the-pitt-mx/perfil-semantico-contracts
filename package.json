@@ -1,6 +1,6 @@
 {
   "name": "@fanware/perfil-semantico-contracts",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Tipos y esquemas compartidos de Perfil Semántico (Fanware CX).",
   "license": "UNLICENSED",
   "type": "module",
@@ -19,6 +19,9 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepare": "npm run build"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

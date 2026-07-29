@@ -33,15 +33,12 @@ negocio. Si algo de eso hace falta compartirlo entre repos, va en otro sitio.
 Para consumirlo desde `api` o `web`:
 
 ```bash
-npm install "git+https://<host>/<org>/perfil-semantico-contracts.git#v0.1.0"
+npm install "git+https://github.com/the-pitt-mx/perfil-semantico-contracts.git#v0.1.0"
 ```
 
 El `#v0.1.0` **no es opcional**: sin tag, npm instala la punta de la rama por defecto y
 pierdes el versionado. El script `prepare` de este paquete compila `dist/` en el momento
 de la instalación, que es lo que hace viable la dependencia git.
-
-> Host decidido: **GitHub**. Falta el usuario u organización — sustituir `<host>/<org>`
-> por `github.com/<usuario>` cuando se confirme.
 
 ## Publicar una versión
 

@@ -7,6 +7,26 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.3.0] — 2026-07-29
+
+Retención fiscal de compras. Decisión de negocio: hay obligación legal de
+conservar la información de consumo del cliente **al menos un año**, con lo
+mínimo para identificar la transacción.
+
+### Añadido
+- `Compra.email_cliente` — copia del correo al momento de la compra, no una
+  referencia. Es el identificador fiscal de la transacción y lo que permite que
+  la compra sobreviva a la supresión del perfil.
+- `Compra.recibo_enviado_at` — marca de tiempo en vez de booleano: da el sí/no
+  que pide el requisito (nulo = no enviado) y además el cuándo, que es lo que
+  hace falta si un cliente reclama no haberlo recibido.
+
+### Cambiado (breaking)
+- `Compra.perfil_id` pasa a ser nullable. `null` significa que el perfil fue
+  suprimido y la fila solo se conserva como registro fiscal. Un cliente nunca
+  recibe una fila así: RLS resuelve la propiedad a través del perfil, así que una
+  compra huérfana es invisible con cualquier JWT de usuario.
+
 ## [0.2.0] — 2026-07-29
 
 Regla de checkout confirmada por Peter: el upsell de Tier 2 se puede aceptar

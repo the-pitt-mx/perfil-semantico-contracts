@@ -82,9 +82,15 @@ src/
 
 ```bash
 npm install
-npm run build
-npm run typecheck
 ```
+
+```bash
+npm test
+```
+
+`npm test` compila primero y luego corre `test/schemas.test.mjs`: 22 casos, incluidos los
+que **deben** rechazarse. Un esquema que acepta todo no valida nada, así que la mitad de la
+suite son datos inválidos.
 
 ## Decisiones abiertas de Fase 1
 

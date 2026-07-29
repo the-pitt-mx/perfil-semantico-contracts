@@ -112,7 +112,25 @@ export type EstadoPago = z.infer<typeof EstadoPagoSchema>;
  */
 export const CompraSchema = z.object({
   id: z.string().uuid(),
-  perfil_id: z.string().uuid(),
+  /**
+   * `null` significa que el perfil fue suprimido y esta fila solo se conserva
+   * como registro fiscal.
+   *
+   * En la práctica un cliente nunca recibe una fila así: las políticas RLS
+   * resuelven la propiedad a través del perfil, así que una compra huérfana es
+   * invisible con cualquier JWT de usuario y solo la ve `service_role`.
+   */
+  perfil_id: z.string().uuid().nullable(),
+  /**
+   * Copia del correo **al momento de la compra**, no una referencia.
+   *
+   * Es el identificador fiscal de la transacción: hay obligación legal de
+   * conservar la información de consumo al menos un año, y esta copia es lo que
+   * permite que la compra sobreviva a la supresión del perfil. También es la
+   * dirección a la que se envió el recibo, que puede no coincidir con el correo
+   * actual del cliente.
+   */
+  email_cliente: z.string().email(),
   tier: TierSchema,
   precio_centavos_mxn: z.number().int().nonnegative(),
   temporada: TemporadaSchema,
@@ -123,6 +141,8 @@ export const CompraSchema = z.object({
    * es la primera línea de defensa contra duplicados (documento fuente §3).
    */
   openpay_transaction_id: z.string().nullable(),
+  /** Cuándo se envió el recibo de compra. `null` = no enviado. */
+  recibo_enviado_at: z.string().datetime().nullable(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });

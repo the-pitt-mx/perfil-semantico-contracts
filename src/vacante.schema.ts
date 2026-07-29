@@ -17,18 +17,18 @@ import { z } from 'zod';
  * metadato — el cliente compró la foto de ese día, no una lista viva.
  */
 export const VacanteRecomendadaSchema = z.object({
-  id: z.string().uuid(),
-  compra_id: z.string().uuid(),
+  id: z.uuid(),
+  compra_id: z.uuid(),
   puesto: z.string().min(1),
   empresa: z.string().min(1),
   /** Porcentaje de fit contra el perfil semántico, 0-100. */
   fit_pct: z.number().int().min(0).max(100),
   /** Enlace a la publicación original de la vacante. */
-  url_vacante: z.string().url(),
+  url_vacante: z.url(),
   /** Ruta en el bucket privado de la cover letter. Se firma al servir. */
   cover_letter_path: z.string().nullable(),
   /** Fecha en que se capturó la vacante (ISO 8601, solo fecha). */
-  snapshot_fecha: z.string().date(),
+  snapshot_fecha: z.iso.date(),
 });
 export type VacanteRecomendada = z.infer<typeof VacanteRecomendadaSchema>;
 
@@ -39,8 +39,8 @@ export type VacanteRecomendada = z.infer<typeof VacanteRecomendadaSchema>;
  * cuando se le acaban las 5 vacantes entregadas (Modelo de Negocio §2).
  */
 export const StringBooleanoSchema = z.object({
-  id: z.string().uuid(),
-  compra_id: z.string().uuid(),
+  id: z.uuid(),
+  compra_id: z.uuid(),
   /** La cadena de búsqueda booleana lista para pegar en un portal de empleo. */
   contenido: z.string().min(1),
 });
@@ -60,6 +60,6 @@ export type StringBooleano = z.infer<typeof StringBooleanoSchema>;
 export const VacanteServidaSchema = VacanteRecomendadaSchema.omit({
   cover_letter_path: true,
 }).extend({
-  cover_letter_url_firmada: z.string().url().nullable(),
+  cover_letter_url_firmada: z.url().nullable(),
 });
 export type VacanteServida = z.infer<typeof VacanteServidaSchema>;

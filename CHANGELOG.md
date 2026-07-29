@@ -7,6 +7,35 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.4.0] — 2026-07-29
+
+Migración a Zod 4.
+
+### Cambiado (breaking)
+- **`zod` pasa de `^3.23` a `^4.0`.** Un consumidor que resuelva Zod 3 tendrá dos
+  copias del paquete, y los esquemas de aquí dejarán de ser reconocidos por
+  helpers tipados contra la otra: las comprobaciones de tipo fallan entre copias
+  distintas. Los consumidores deben alinearse en Zod 4.
+
+  El detonante fue concreto: `zodOutputFormat` del SDK de Anthropic —el que
+  convierte un esquema en el formato de salida estructurada de Claude— está
+  tipado contra Zod 4 y rechaza un esquema de Zod 3. Sin esta migración, la
+  generación de perfiles no podría reutilizar `ContenidoPerfilSchema` y habría
+  que mantener un JSON Schema a mano en paralelo, que es exactamente la
+  divergencia que este paquete existe para evitar.
+
+- Idiomas actualizados en vez de alias deprecados: `z.uuid()`, `z.email()`,
+  `z.url()`, `z.iso.datetime()`, `z.iso.date()`, y `z.looseObject()` en lugar de
+  `.passthrough()` para el payload de Openpay.
+
+### Añadido
+- `./package.json` en el campo `exports`. Varias herramientas lo leen por esa
+  subruta y sin él fallan con `ERR_PACKAGE_PATH_NOT_EXPORTED`.
+
+### Nota
+- Zod 4 trae `z.toJSONSchema()` nativo, así que el JSON Schema que pedía el
+  ADR-001 §3 ya no necesita dependencia extra ni mantenimiento manual.
+
 ## [No publicado]
 
 ### Documentación

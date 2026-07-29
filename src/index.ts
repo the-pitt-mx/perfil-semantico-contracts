@@ -25,7 +25,7 @@ export * from './webhook-openpay.types.js';
 export const PerfilCompletoResponseSchema = z.object({
   perfil: PerfilSemanticoSchema.omit({ pdf_path: true }).extend({
     /** URL firmada de expiración corta, o null si el PDF aún no existe. */
-    pdf_url_firmada: z.string().url().nullable(),
+    pdf_url_firmada: z.url().nullable(),
   }),
   compras: z.array(CompraSchema),
   vacantes: z.array(VacanteServidaSchema),

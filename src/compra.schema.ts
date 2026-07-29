@@ -111,7 +111,7 @@ export type EstadoPago = z.infer<typeof EstadoPagoSchema>;
  * unidad quede explícita en el nombre y nadie multiplique por 100 dos veces.
  */
 export const CompraSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   /**
    * `null` significa que el perfil fue suprimido y esta fila solo se conserva
    * como registro fiscal.
@@ -120,7 +120,7 @@ export const CompraSchema = z.object({
    * resuelven la propiedad a través del perfil, así que una compra huérfana es
    * invisible con cualquier JWT de usuario y solo la ve `service_role`.
    */
-  perfil_id: z.string().uuid().nullable(),
+  perfil_id: z.uuid().nullable(),
   /**
    * Copia del correo **al momento de la compra**, no una referencia.
    *
@@ -130,7 +130,7 @@ export const CompraSchema = z.object({
    * dirección a la que se envió el recibo, que puede no coincidir con el correo
    * actual del cliente.
    */
-  email_cliente: z.string().email(),
+  email_cliente: z.email(),
   tier: TierSchema,
   precio_centavos_mxn: z.number().int().nonnegative(),
   temporada: TemporadaSchema,
@@ -149,9 +149,9 @@ export const CompraSchema = z.object({
    * `facturas@fanware.com.mx` y no se rastrea aquí. Si algún día hiciera falta,
    * va en un campo aparte — no reutilizar este.
    */
-  recibo_enviado_at: z.string().datetime().nullable(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  recibo_enviado_at: z.iso.datetime().nullable(),
+  created_at: z.iso.datetime(),
+  updated_at: z.iso.datetime(),
 });
 export type Compra = z.infer<typeof CompraSchema>;
 
@@ -166,12 +166,12 @@ export type Compra = z.infer<typeof CompraSchema>;
  * de la temporada vigente. Aceptar un precio del cliente sería manipulable.
  */
 export const CheckoutRequestSchema = z.object({
-  perfil_id: z.string().uuid(),
+  perfil_id: z.uuid(),
 });
 export type CheckoutRequest = z.infer<typeof CheckoutRequestSchema>;
 
 export const CheckoutResponseSchema = z.object({
-  compra_id: z.string().uuid(),
-  checkout_url: z.string().url(),
+  compra_id: z.uuid(),
+  checkout_url: z.url(),
 });
 export type CheckoutResponse = z.infer<typeof CheckoutResponseSchema>;

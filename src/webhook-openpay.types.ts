@@ -28,14 +28,15 @@ export const OpenpayWebhookPayloadSchema = z.object({
   /** Tipo de evento: `charge.succeeded`, `charge.failed`, etc. */
   type: z.string().min(1),
   event_date: z.string(),
-  transaction: z
-    .object({
-      id: z.string().min(1),
-      status: z.string().min(1),
-      amount: z.number().optional(),
-      currency: z.string().optional(),
-    })
-    .passthrough(),
+  // `looseObject` conserva las claves no declaradas, que es el equivalente en
+  // Zod 4 del `.passthrough()` de Zod 3. Es deliberado: si Openpay añade campos,
+  // se conservan en vez de descartarse silenciosamente.
+  transaction: z.looseObject({
+    id: z.string().min(1),
+    status: z.string().min(1),
+    amount: z.number().optional(),
+    currency: z.string().optional(),
+  }),
 });
 export type OpenpayWebhookPayload = z.infer<typeof OpenpayWebhookPayloadSchema>;
 
@@ -47,9 +48,9 @@ export type OpenpayWebhookPayload = z.infer<typeof OpenpayWebhookPayloadSchema>;
  * de formas distintas.
  */
 export const WebhookEventSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   openpay_event_id: z.string().min(1),
   payload: z.unknown(),
-  procesado_at: z.string().datetime().nullable(),
+  procesado_at: z.iso.datetime().nullable(),
 });
 export type WebhookEvent = z.infer<typeof WebhookEventSchema>;

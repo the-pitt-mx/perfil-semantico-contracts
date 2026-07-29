@@ -19,9 +19,9 @@ import { z } from 'zod';
 
 /** Tabla `clientes`. Identidad mínima del candidato. */
 export const ClienteSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
-  created_at: z.string().datetime(),
+  id: z.uuid(),
+  email: z.email(),
+  created_at: z.iso.datetime(),
 });
 export type Cliente = z.infer<typeof ClienteSchema>;
 
@@ -33,12 +33,12 @@ export type Cliente = z.infer<typeof ClienteSchema>;
  * con expiración corta: la URL se firma al servirla, nunca se persiste.
  */
 export const CvSchema = z.object({
-  id: z.string().uuid(),
-  cliente_id: z.string().uuid(),
+  id: z.uuid(),
+  cliente_id: z.uuid(),
   archivo_path: z.string().min(1),
   /** Hash del archivo, para detectar resubidas idénticas. */
   hash: z.string().min(1),
-  uploaded_at: z.string().datetime(),
+  uploaded_at: z.iso.datetime(),
 });
 export type Cv = z.infer<typeof CvSchema>;
 
@@ -51,7 +51,7 @@ export const DatosContactoSchema = z.object({
   nombre_completo: z.string().min(1),
   /** Título o rol objetivo, no el puesto actual. */
   titulo_objetivo: z.string().min(1),
-  email: z.string().email(),
+  email: z.email(),
   telefono: z.string().nullable(),
   linkedin: z.string().nullable(),
   ubicacion: z.string().nullable(),
@@ -153,16 +153,16 @@ export const EstadoPerfilSchema = z.enum([
 export type EstadoPerfil = z.infer<typeof EstadoPerfilSchema>;
 
 export const PerfilSemanticoSchema = z.object({
-  id: z.string().uuid(),
-  cliente_id: z.string().uuid(),
-  cv_id: z.string().uuid(),
+  id: z.uuid(),
+  cliente_id: z.uuid(),
+  cv_id: z.uuid(),
   /** Incrementa con cada reinicio de perfil. Empieza en 1. */
   version: z.number().int().positive(),
   contenido: ContenidoPerfilSchema,
   /** Ruta en el bucket privado `perfiles-pdf`. Se firma al servir. */
   pdf_path: z.string().nullable(),
   estado: EstadoPerfilSchema,
-  created_at: z.string().datetime(),
+  created_at: z.iso.datetime(),
 });
 export type PerfilSemantico = z.infer<typeof PerfilSemanticoSchema>;
 
@@ -178,15 +178,15 @@ export type PerfilSemantico = z.infer<typeof PerfilSemanticoSchema>;
  * el rate limiting.
  */
 export const UploadCvRequestSchema = z.object({
-  email: z.string().email(),
-  cliente_id: z.string().uuid().nullable(),
+  email: z.email(),
+  cliente_id: z.uuid().nullable(),
 });
 export type UploadCvRequest = z.infer<typeof UploadCvRequestSchema>;
 
 /** Respuesta de `POST /cv`. La generación es asíncrona: nace en `generando`. */
 export const PerfilSemanticoResponseSchema = z.object({
-  perfil_id: z.string().uuid(),
-  cliente_id: z.string().uuid(),
+  perfil_id: z.uuid(),
+  cliente_id: z.uuid(),
   estado: EstadoPerfilSchema,
 });
 export type PerfilSemanticoResponse = z.infer<
@@ -195,6 +195,6 @@ export type PerfilSemanticoResponse = z.infer<
 
 /** `POST /access/resend` — reenvía el magic link al email registrado. */
 export const ResendAccessRequestSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
 });
 export type ResendAccessRequest = z.infer<typeof ResendAccessRequestSchema>;

@@ -1,0 +1,19 @@
+# CI vacío — Fase 0 (ADR-001 §8).
+# No ejecuta verificaciones reales todavía; se llena a partir de Fase 1.
+name: CI contracts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Placeholder Fase 0
+        run: echo "Sin pasos de CI todavia. Ver ADR-001 seccion 8."

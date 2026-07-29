@@ -40,6 +40,24 @@ El `#v0.1.0` **no es opcional**: sin tag, npm instala la punta de la rama por de
 pierdes el versionado. El script `prepare` de este paquete compila `dist/` en el momento
 de la instalación, que es lo que hace viable la dependencia git.
 
+### Riesgo conocido: npm bloquea scripts de instalación
+
+`dist/` no está en el repositorio — se genera al instalar, vía `prepare`. npm 11 empezó a
+bloquear scripts de ciclo de vida por defecto y avisa al instalar este paquete:
+
+```
+npm warn allow-scripts @fanware/perfil-semantico-contracts@0.1.0 (prepare: npm run build)
+```
+
+Verificado el 2026-07-29 con npm 11.16: **el `prepare` sí corre** para dependencias git y
+`dist/` queda construido. Pero si una versión futura de npm lo bloquea de verdad, el
+paquete se instalará vacío y el error en `api` o `web` será confuso ("no se encuentra el
+módulo"), no obvio.
+
+Si eso pasa, las salidas por orden de preferencia son: aprobar el script en el consumidor
+(`npm approve-scripts`), publicar el paquete ya compilado en un registro, o commitear
+`dist/`. La última funciona siempre pero ensucia los diffs.
+
 ## Publicar una versión
 
 1. Actualizar `CHANGELOG.md`.

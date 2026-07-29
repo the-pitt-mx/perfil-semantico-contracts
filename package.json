@@ -1,6 +1,6 @@
 {
   "name": "@fanware/perfil-semantico-contracts",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Tipos y esquemas compartidos de Perfil Semántico (Fanware CX).",
   "license": "UNLICENSED",
   "type": "module",

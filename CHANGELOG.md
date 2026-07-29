@@ -7,6 +7,26 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.2.0] — 2026-07-29
+
+Regla de checkout confirmada por Peter: el upsell de Tier 2 se puede aceptar
+antes de pagar (un solo cobro) o después de la confirmación de compra (cobro
+separado por el incremento).
+
+### Añadido
+- `tier_1_2` en `Tier` — Tier 1 y Tier 2 cobrados en un mismo checkout. Un
+  checkout produce una sola transacción de Openpay y `openpay_transaction_id` es
+  único, así que dos filas de compra no pueden compartirla; el paquete se guarda
+  como un valor de tier propio, igual que ya hacía `reinicio_perfil`.
+- `TIERS_OTORGADOS` y `tieneAcceso()` — qué desbloquea cada cobro. Está aquí y no
+  en `api` o `web` porque es exactamente el dato que ambos interpretarían
+  distinto: si `web` olvidara que `tier_1_2` otorga Tier 2, escondería contenido
+  ya pagado.
+
+### Cambiado (breaking)
+- `Tier` tiene un valor más. Un `switch` exhaustivo sobre `Tier` en un consumidor
+  dejaría de compilar. No hay consumidores todavía.
+
 ## [0.1.0] — 2026-07-29
 
 Primera versión con esquemas. Fase 1 del ADR-001.

@@ -10,22 +10,66 @@ import { z } from 'zod';
  */
 
 /**
- * Los cinco tiers (Modelo de Negocio §2).
+ * Lo que se cobra en una transacción (Modelo de Negocio §2).
  *
  * - `gratis` — perfil semántico, habilidades y nombres alternativos de posición.
  * - `tier_1` — 5 vacantes reales del día con % de fit + cover letter por cada una.
- * - `tier_2` — añade strings booleanos de búsqueda sobre el mismo perfil.
+ * - `tier_2` — solo los strings booleanos, comprados **después** de Tier 1.
+ * - `tier_1_2` — Tier 1 y Tier 2 en un mismo checkout, cuando el cliente acepta
+ *   el upsell antes de pagar.
  * - `tier_3` — refill: otras 5 vacantes sobre el perfil original, sin regenerarlo.
  * - `reinicio_perfil` — CV nuevo: perfil nuevo y cobro de Tier 1 + Tier 2 juntos.
+ *
+ * `tier_1_2` existe porque un checkout produce **una** transacción de Openpay, y
+ * `openpay_transaction_id` es único: dos filas de compra no pueden compartirlo.
+ * Guardar el paquete como un valor propio mantiene esa defensa contra duplicados
+ * intacta, y sigue el precedente que el propio modelo ya tenía con
+ * `reinicio_perfil`.
  */
 export const TierSchema = z.enum([
   'gratis',
   'tier_1',
   'tier_2',
+  'tier_1_2',
   'tier_3',
   'reinicio_perfil',
 ]);
 export type Tier = z.infer<typeof TierSchema>;
+
+/**
+ * Qué desbloquea cada cobro.
+ *
+ * Vive en `contracts` y no en `api` o `web` porque es justo la clase de dato que
+ * los dos interpretarían distinto: el hub es dinámico y decide qué renderizar a
+ * partir del estado de compra (Modelo de Negocio §3). Si `web` olvidara que
+ * `tier_1_2` también otorga Tier 2, escondería contenido ya pagado.
+ */
+export const TIERS_OTORGADOS: Record<Tier, readonly Tier[]> = {
+  gratis: [],
+  tier_1: ['tier_1'],
+  tier_2: ['tier_2'],
+  tier_1_2: ['tier_1', 'tier_2'],
+  tier_3: ['tier_3'],
+  reinicio_perfil: ['tier_1', 'tier_2'],
+};
+
+/**
+ * ¿El cliente tiene acceso pagado a este tier?
+ *
+ * Solo cuentan las compras en `pagada`: una compra `pendiente` no da acceso, o
+ * bastaría con abrir el checkout para desbloquear contenido.
+ *
+ * No sirve para Tier 3, que es acumulable — ahí interesa *cuántos* refills
+ * compró, no si compró alguno.
+ */
+export function tieneAcceso(
+  compras: readonly Pick<Compra, 'tier' | 'estado_pago'>[],
+  tier: Tier,
+): boolean {
+  return compras.some(
+    (c) => c.estado_pago === 'pagada' && TIERS_OTORGADOS[c.tier].includes(tier),
+  );
+}
 
 /**
  * Temporada de precios vigente al momento de la compra (Modelo de Negocio §5).

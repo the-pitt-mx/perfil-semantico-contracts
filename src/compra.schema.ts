@@ -141,7 +141,14 @@ export const CompraSchema = z.object({
    * es la primera línea de defensa contra duplicados (documento fuente §3).
    */
   openpay_transaction_id: z.string().nullable(),
-  /** Cuándo se envió el recibo de compra. `null` = no enviado. */
+  /**
+   * Cuándo se envió el correo de confirmación de compra vía Resend, que incluye
+   * el recibo emitido por Openpay. `null` = no enviado.
+   *
+   * **No es el CFDI.** La factura se emite manualmente vía
+   * `facturas@fanware.com.mx` y no se rastrea aquí. Si algún día hiciera falta,
+   * va en un campo aparte — no reutilizar este.
+   */
   recibo_enviado_at: z.string().datetime().nullable(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),

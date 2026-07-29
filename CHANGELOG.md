@@ -7,6 +7,14 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [No publicado]
+
+### Documentación
+- Se precisa qué registra `Compra.recibo_enviado_at`: el correo de confirmación de
+  compra de Resend, que incluye el recibo de Openpay. **No es el CFDI**, que se
+  emite manualmente y no se rastrea aquí. Sin cambio de tipos, así que no lleva
+  versión propia — viaja con el próximo release.
+
 ## [0.3.0] — 2026-07-29
 
 Retención fiscal de compras. Decisión de negocio: hay obligación legal de

@@ -19,6 +19,17 @@ Decisión de arranque: se consume como dependencia git, no como paquete npm priv
 (evita el costo de un scope privado en npmjs y la configuración de `.npmrc` con token
 en los cuatro repos y en CI). Migrar a npm privado después es un cambio de una línea.
 
+### Este repositorio es público a propósito
+
+`infra`, `api` y `web` son privados. **Este es público**, y es lo que hace que
+`npm install` funcione sin credenciales en tu máquina, en GitHub Actions y en el build de
+Cloudflare — tres sitios donde, si fuera privado, habría que configurar un token para
+clonar un segundo repo privado durante la instalación.
+
+Lo que expone es la forma de los datos: nombres de tipos y de campos. **Nunca debe entrar
+aquí** una llave, una URL de servicio, un precio, un prompt de Claude ni lógica de
+negocio. Si algo de eso hace falta compartirlo entre repos, va en otro sitio.
+
 Para consumirlo desde `api` o `web`:
 
 ```bash
@@ -29,8 +40,8 @@ El `#v0.1.0` **no es opcional**: sin tag, npm instala la punta de la rama por de
 pierdes el versionado. El script `prepare` de este paquete compila `dist/` en el momento
 de la instalación, que es lo que hace viable la dependencia git.
 
-> Pendiente: el host y la organización de git aún no están decididos (no hay `gh` CLI
-> instalado ni remoto configurado). Sustituir `<host>/<org>` cuando se resuelva.
+> Host decidido: **GitHub**. Falta el usuario u organización — sustituir `<host>/<org>`
+> por `github.com/<usuario>` cuando se confirme.
 
 ## Publicar una versión
 

@@ -1,0 +1,7 @@
+# Normaliza finales de linea: LF en el repo, sea cual sea el SO local.
+# Evita diffs espurios entre Windows y el CI de Ubuntu.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.pdf binary

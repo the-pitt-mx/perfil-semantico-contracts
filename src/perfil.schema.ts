@@ -132,6 +132,36 @@ export const LEYENDA_FITS: Record<
   },
 };
 
+/**
+ * Lo que devuelve el modelo al leer el archivo subido.
+ *
+ * **Existe porque el esquema de `ContenidoPerfil` obliga a producir un perfil.**
+ * Sin esta envoltura, un PDF que no es un CV —un recibo, un contrato, una foto
+ * escaneada— llevaría al modelo a inventar habilidades y puestos para satisfacer
+ * los mínimos del esquema, en contra de la regla de no inventar. Aquí tiene una
+ * salida honesta.
+ *
+ * También es más barato: al devolver `contenido: null` no genera el perfil, y los
+ * tokens de salida son ~2/3 del costo por llamada. Rechazar una subida basura
+ * cuesta menos que procesarla.
+ *
+ * La correlación entre campos (`es_cv: true` ⇒ `contenido` presente) no se
+ * expresa aquí porque la salida estructurada de Claude no admite validaciones
+ * condicionales: se comprueba en el Worker al recibir la respuesta.
+ */
+export const LecturaCvSchema = z.object({
+  /** `false` si el documento no es un CV o está tan incompleto que no da para un perfil. */
+  es_cv: z.boolean(),
+  /**
+   * Por qué no se pudo generar, en una frase dirigida a la persona que subió el
+   * archivo. `null` cuando `es_cv` es `true`.
+   */
+  motivo: z.string().nullable(),
+  /** El perfil. `null` cuando `es_cv` es `false`. */
+  contenido: ContenidoPerfilSchema.nullable(),
+});
+export type LecturaCv = z.infer<typeof LecturaCvSchema>;
+
 // ---------------------------------------------------------------------------
 // Tabla `perfiles_semanticos`
 // ---------------------------------------------------------------------------

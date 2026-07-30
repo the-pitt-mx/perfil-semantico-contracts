@@ -1,5 +1,6 @@
 import {
   ContenidoPerfilSchema,
+  LecturaCvSchema,
   PerfilSemanticoSchema,
   CompraSchema,
   VacanteRecomendadaSchema,
@@ -158,6 +159,16 @@ acepta('PerfilCompletoResponse con hub vacío', () =>
     strings_booleanos: [],
   }));
 
+acepta('LecturaCv: el archivo sí era un CV', () =>
+  LecturaCvSchema.parse({ es_cv: true, motivo: null, contenido }));
+
+acepta('LecturaCv: el archivo no era un CV, sin perfil inventado', () =>
+  LecturaCvSchema.parse({
+    es_cv: false,
+    motivo: 'El documento parece un recibo de pago, no un currículum.',
+    contenido: null,
+  }));
+
 acepta('LEYENDA_FITS cubre los tres tipos de fit', () => {
   for (const t of ['directo', 'transferible', 'ambicioso']) {
     if (!LEYENDA_FITS[t]?.explicacion) throw new Error(`falta ${t}`);
@@ -239,6 +250,16 @@ rechaza('perfil sin habilidades clave', () =>
 
 rechaza('perfil sin posiciones alternativas', () =>
   ContenidoPerfilSchema.parse({ ...contenido, posiciones_alternativas: [] }));
+
+rechaza('LecturaCv sin el veredicto es_cv', () =>
+  LecturaCvSchema.parse({ motivo: null, contenido }));
+
+rechaza('LecturaCv con un contenido a medias', () =>
+  LecturaCvSchema.parse({
+    es_cv: true,
+    motivo: null,
+    contenido: { ...contenido, habilidades_clave: [] },
+  }));
 
 // ---------------------------------------------------------------------------
 console.log(`\nResultado: ${ok} OK, ${fail} fallas`);

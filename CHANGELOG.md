@@ -7,6 +7,25 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.6.0] — 2026-07-30
+
+### Añadido
+- **`LecturaCvSchema`** — envoltura de la salida del modelo:
+  `{ es_cv, motivo, contenido }`.
+
+  Existe porque `ContenidoPerfilSchema` **obliga** a producir un perfil: exige al
+  menos una habilidad y una posición. Sin envoltura, un PDF que no es un CV
+  llevaría al modelo a inventarlas para satisfacer el esquema, justo en contra de
+  la regla de no inventar. Ahora tiene una salida honesta.
+
+  También sale más barato: con `contenido: null` no se generan los tokens de
+  salida, que son ~2/3 del costo. **Rechazar una subida basura cuesta menos que
+  procesarla** (~$0.49 MXN contra ~$1.52).
+
+  La correlación entre campos (`es_cv: true` ⇒ `contenido` presente) no se expresa
+  en el esquema porque la salida estructurada de Claude no admite validaciones
+  condicionales; se comprueba en el Worker.
+
 ## [0.5.0] — 2026-07-30
 
 Cambio de procesador de pagos: **PayPal** en lugar de Openpay.

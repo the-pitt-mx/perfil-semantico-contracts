@@ -7,6 +7,26 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.7.0] — 2026-07-30
+
+### Cambiado (breaking)
+- **`PerfilSemantico.contenido` pasa a ser nullable.** La base permite
+  `contenido_json` nulo mientras el perfil no está `activo` —lo impone con un
+  CHECK— así que el esquema estaba mintiendo: un consumidor que asumiera contenido
+  siempre presente reventaba justo al leer un perfil `generando`, es decir en la
+  pantalla de espera, que es la primera que ve el candidato.
+
+### Añadido
+- **`PerfilSemantico.motivo_fallo`** — por qué falló, redactado para mostrárselo
+  al candidato tal cual. Solo viene con `estado: 'fallido'`, y la base lo impone
+  con un CHECK para que un motivo olvidado no sobreviva a un reintento exitoso.
+
+  Existe porque la verificación de CV puede rechazar un archivo que no es un
+  currículum, y ese motivo no tenía dónde vivir: el candidato veía `fallido` a
+  secas. Como reintentar cuesta un tier de pago, dejarlo adivinar es cobrarle por
+  un error que detectamos y no le explicamos. Va en el panel y no solo en el
+  correo, porque el correo puede no llegar.
+
 ## [0.6.0] — 2026-07-30
 
 ### Añadido

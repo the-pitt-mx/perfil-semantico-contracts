@@ -79,16 +79,32 @@ console.log('\nDatos válidos:');
 
 acepta('ContenidoPerfil completo', () => ContenidoPerfilSchema.parse(contenido));
 
+const perfilBase = {
+  id: '11111111-1111-4111-8111-111111111111',
+  cliente_id: '22222222-2222-4222-8222-222222222222',
+  cv_id: '33333333-3333-4333-8333-333333333333',
+  version: 1,
+  contenido,
+  pdf_path: null,
+  estado: 'generando',
+  motivo_fallo: null,
+  created_at: '2026-07-29T12:00:00.000Z',
+};
+
 acepta('PerfilSemantico en generando, sin PDF todavía', () =>
+  PerfilSemanticoSchema.parse(perfilBase));
+
+acepta('PerfilSemantico generando todavía sin contenido', () =>
+  // La base permite contenido_json nulo mientras no esté activo. Un consumidor
+  // que asuma que siempre viene revienta justo en la pantalla de espera.
+  PerfilSemanticoSchema.parse({ ...perfilBase, contenido: null }));
+
+acepta('PerfilSemantico fallido con el motivo que verá el candidato', () =>
   PerfilSemanticoSchema.parse({
-    id: '11111111-1111-4111-8111-111111111111',
-    cliente_id: '22222222-2222-4222-8222-222222222222',
-    cv_id: '33333333-3333-4333-8333-333333333333',
-    version: 1,
-    contenido,
-    pdf_path: null,
-    estado: 'generando',
-    created_at: '2026-07-29T12:00:00.000Z',
+    ...perfilBase,
+    contenido: null,
+    estado: 'fallido',
+    motivo_fallo: 'El archivo parece un recibo de pago, no un currículum.',
   }));
 
 acepta('Compra pendiente, sin transacción ni recibo', () => CompraSchema.parse(compraBase));
@@ -152,6 +168,7 @@ acepta('PerfilCompletoResponse con hub vacío', () =>
       contenido,
       pdf_url_firmada: 'https://x.supabase.co/storage/v1/object/sign/a?token=b',
       estado: 'activo',
+      motivo_fallo: null,
       created_at: '2026-07-29T12:00:00.000Z',
     },
     compras: [],

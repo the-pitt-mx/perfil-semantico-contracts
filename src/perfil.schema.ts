@@ -188,10 +188,24 @@ export const PerfilSemanticoSchema = z.object({
   cv_id: z.uuid(),
   /** Incrementa con cada reinicio de perfil. Empieza en 1. */
   version: z.number().int().positive(),
-  contenido: ContenidoPerfilSchema,
+  /**
+   * Nulo mientras el perfil está `generando`, y también si quedó `fallido`.
+   * Solo `activo` garantiza contenido — la base lo impone con un CHECK, así que
+   * un consumidor que asuma que siempre viene revienta al leer un perfil en curso.
+   */
+  contenido: ContenidoPerfilSchema.nullable(),
   /** Ruta en el bucket privado `perfiles-pdf`. Se firma al servir. */
   pdf_path: z.string().nullable(),
   estado: EstadoPerfilSchema,
+  /**
+   * Por qué falló, redactado para mostrárselo al candidato tal cual.
+   *
+   * Solo viene con `estado: 'fallido'`. No es un código ni un mensaje técnico:
+   * explica qué pasó y qué debe subir en su lugar — el caso típico es que el
+   * archivo no fuera un CV. Va en el panel y no solo en el correo, porque el
+   * correo puede no llegar y reintentar le cuesta un tier de pago.
+   */
+  motivo_fallo: z.string().nullable(),
   created_at: z.iso.datetime(),
 });
 export type PerfilSemantico = z.infer<typeof PerfilSemanticoSchema>;

@@ -3,7 +3,7 @@ import {
   PerfilSemanticoSchema,
   CompraSchema,
   VacanteRecomendadaSchema,
-  OpenpayWebhookPayloadSchema,
+  PayPalWebhookPayloadSchema,
   PerfilCompletoResponseSchema,
   LEYENDA_FITS,
   tieneAcceso,
@@ -62,11 +62,12 @@ const compraBase = {
   id: '44444444-4444-4444-8444-444444444444',
   perfil_id: '11111111-1111-4111-8111-111111111111',
   email_cliente: 'cliente@correo.com',
+  procesador: 'paypal',
   tier: 'tier_2',
   precio_centavos_mxn: 2900,
   temporada: 1,
   estado_pago: 'pendiente',
-  openpay_transaction_id: null,
+  transaccion_id: null,
   recibo_enviado_at: null,
   created_at: '2026-07-29T12:00:00.000Z',
   updated_at: '2026-07-29T12:00:00.000Z',
@@ -96,7 +97,7 @@ acepta('Compra huérfana: perfil suprimido, registro fiscal conservado', () =>
     ...compraBase,
     perfil_id: null,
     estado_pago: 'pagada',
-    openpay_transaction_id: 'trx_1',
+    transaccion_id: '8XY12345AB678901C',
     recibo_enviado_at: '2026-07-29T12:05:00.000Z',
   }));
 
@@ -112,14 +113,32 @@ acepta('VacanteRecomendada con enlace externo', () =>
     snapshot_fecha: '2026-07-29',
   }));
 
-acepta('El webhook conserva campos que Openpay añada', () => {
-  const r = OpenpayWebhookPayloadSchema.parse({
-    id: 'evt_1',
-    type: 'charge.succeeded',
-    event_date: '2026-07-29T12:00:00Z',
-    transaction: { id: 'trx_1', status: 'completed', campo_nuevo: 'x' },
+acepta('El webhook conserva campos que PayPal añada', () => {
+  const r = PayPalWebhookPayloadSchema.parse({
+    id: 'WH-1AB23456CD789012E-3FG45678HI901234J',
+    event_type: 'PAYMENT.CAPTURE.COMPLETED',
+    create_time: '2026-07-29T12:00:00Z',
+    resource_type: 'capture',
+    resource: {
+      id: '8XY12345AB678901C',
+      status: 'COMPLETED',
+      amount: { currency_code: 'MXN', value: '79.00' },
+      campo_nuevo: 'x',
+    },
   });
-  if (r.transaction.campo_nuevo !== 'x') throw new Error('se perdió el campo extra');
+  if (r.resource.campo_nuevo !== 'x') throw new Error('se perdió el campo extra');
+});
+
+acepta('El id del evento y el de la captura son campos distintos', () => {
+  // Confundirlos rompe la idempotencia y la conciliación a la vez: el evento va
+  // a webhook_events.evento_externo_id y la captura a compras.transaccion_id.
+  const r = PayPalWebhookPayloadSchema.parse({
+    id: 'WH-EVENTO',
+    event_type: 'PAYMENT.CAPTURE.COMPLETED',
+    create_time: '2026-07-29T12:00:00Z',
+    resource: { id: 'CAPTURA', status: 'COMPLETED' },
+  });
+  if (r.id === r.resource.id) throw new Error('deberían ser distintos');
 });
 
 acepta('PerfilCompletoResponse con hub vacío', () =>

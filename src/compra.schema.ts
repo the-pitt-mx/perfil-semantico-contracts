@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ProcesadorPagoSchema } from './webhook-pago.types.js';
 
 /**
  * Compras y tiers.
@@ -135,12 +136,15 @@ export const CompraSchema = z.object({
   precio_centavos_mxn: z.number().int().nonnegative(),
   temporada: TemporadaSchema,
   estado_pago: EstadoPagoSchema,
+  /** Qué procesador cobró. Hoy siempre `paypal`. */
+  procesador: ProcesadorPagoSchema,
   /**
-   * Id de transacción de Openpay. Nulo mientras la compra está `pendiente` y
-   * aún no hay sesión de checkout creada. Con constraint único en la base:
-   * es la primera línea de defensa contra duplicados (documento fuente §3).
+   * Id de la transacción en el procesador — en PayPal, el id de la **captura**,
+   * no el del evento de webhook. Nulo mientras la compra está `pendiente` y aún
+   * no hay checkout creado. Con constraint único en la base: es la primera línea
+   * de defensa contra duplicados (documento fuente §3).
    */
-  openpay_transaction_id: z.string().nullable(),
+  transaccion_id: z.string().nullable(),
   /**
    * Cuándo se envió el correo de confirmación de compra vía Resend, que incluye
    * el recibo emitido por Openpay. `null` = no enviado.

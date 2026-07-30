@@ -7,6 +7,33 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.5.0] — 2026-07-30
+
+Cambio de procesador de pagos: **PayPal** en lugar de Openpay.
+
+### Cambiado (breaking)
+- `Compra.openpay_transaction_id` → **`Compra.transaccion_id`**, y se añade
+  **`Compra.procesador`**. Los nombres son genéricos a propósito: ya se cambió de
+  procesador una vez, y no hay razón para pagar una migración de renombrado
+  completa la próxima. Añadir un procesador ahora es aditivo.
+- `webhook-openpay.types.ts` → **`webhook-pago.types.ts`**.
+- `OpenpayWebhookPayloadSchema` → **`PayPalWebhookPayloadSchema`**, con la forma
+  real de PayPal: `event_type` en vez de `type`, `create_time` en vez de
+  `event_date`, y `resource` en vez de `transaction`. El monto llega como
+  **cadena** (`"79.00"`), no como número.
+- `WebhookEvent.openpay_event_id` → **`evento_externo_id`**, y se añaden
+  `procesador` y `recibido_at`.
+
+### Añadido
+- `ProcesadorPagoSchema` — hoy solo `'paypal'`.
+
+### Trampa que el esquema documenta
+En PayPal, `id` identifica el **evento** (`WH-...`) y `resource.id` la **captura**.
+El primero es la clave de idempotencia y va a `webhook_events.evento_externo_id`;
+el segundo va a `compras.transaccion_id`. Confundirlos rompe la idempotencia y la
+conciliación a la vez, así que hay una prueba dedicada a que sean campos
+distintos.
+
 ## [0.4.0] — 2026-07-29
 
 Migración a Zod 4.

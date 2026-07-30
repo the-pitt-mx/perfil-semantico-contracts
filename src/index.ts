@@ -6,7 +6,7 @@ import { StringBooleanoSchema, VacanteServidaSchema } from './vacante.schema.js'
 export * from './perfil.schema.js';
 export * from './compra.schema.js';
 export * from './vacante.schema.js';
-export * from './webhook-openpay.types.js';
+export * from './webhook-pago.types.js';
 
 /**
  * `GET /perfil/:clienteId` — lo que alimenta el panel del cliente.

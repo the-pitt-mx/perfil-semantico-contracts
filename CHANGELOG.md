@@ -7,6 +7,41 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.8.0] — 2026-07-31
+
+### Cambiado (breaking)
+- **`VacanteRecomendada` pierde `cover_letter_path`, y `VacanteServida`
+  desaparece.** Tier 1 dejó de entregar cinco cartas y ahora entrega **una guía
+  para redactar tu cover letter** (ADR-001 §A.22).
+
+  La ruta colgaba de cada vacante. Una guía única no pertenece a una vacante:
+  repetir la misma ruta en las cinco filas, o colgarla de una elegida al azar,
+  miente sobre la forma del dato — y quien lea el esquema dentro de seis meses
+  concluirá que hay cinco archivos.
+
+  `VacanteServida` existía solo para traducir esa ruta a una URL firmada. Sin
+  ruta, lo que se guarda y lo que se sirve son idénticos, y dos nombres para la
+  misma forma solo invitan a preguntarse cuál toca usar. La distinción no se
+  perdió: se mudó a `CompraServida`.
+
+- **`PerfilCompletoResponse.compras` pasa a ser `CompraServida[]`** y
+  **`.vacantes` a `VacanteRecomendada[]`**.
+
+### Añadido
+- **`Compra.guia_path`** — ruta en Storage de la guía. Nula mientras no se ha
+  generado, y también en los tiers que no la incluyen.
+- **`CompraServida`** — la compra tal como se le sirve al navegador, con
+  `guia_url_firmada` en lugar de la ruta. Hereda el papel que tenía
+  `VacanteServida`: que una ruta cruda no se filtre al cliente —no le sirve de
+  nada, el bucket es privado— y que una URL que caduca en minutos no se persista.
+
+### Nota para quien migre
+`api` debe dejar de leer `cover_letter_path` en la consulta del panel y empezar a
+firmar `guia_path`. La columna equivalente en la base la mueve la migración 0014
+de `infra`, que además tiene que hacer que el trigger de purga limpie la ruta
+nueva: `compras` sobrevive a la supresión del perfil como registro fiscal, y una
+guía que sobreviva es un dato personal que alguien pidió borrar.
+
 ## [0.7.0] — 2026-07-30
 
 ### Cambiado (breaking)

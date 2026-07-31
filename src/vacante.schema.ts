@@ -25,8 +25,6 @@ export const VacanteRecomendadaSchema = z.object({
   fit_pct: z.number().int().min(0).max(100),
   /** Enlace a la publicación original de la vacante. */
   url_vacante: z.url(),
-  /** Ruta en el bucket privado de la cover letter. Se firma al servir. */
-  cover_letter_path: z.string().nullable(),
   /** Fecha en que se capturó la vacante (ISO 8601, solo fecha). */
   snapshot_fecha: z.iso.date(),
 });
@@ -47,19 +45,15 @@ export const StringBooleanoSchema = z.object({
 export type StringBooleano = z.infer<typeof StringBooleanoSchema>;
 
 // ---------------------------------------------------------------------------
-// Vista compuesta para el hub del cliente
+// Nota sobre `VacanteServida`, que existió hasta la v0.8.0
 // ---------------------------------------------------------------------------
-
-/**
- * Una vacante tal como se le sirve al navegador: las rutas de Storage ya
- * resueltas a URLs firmadas con expiración corta (documento fuente §9).
- *
- * Es un tipo distinto del de la tabla a propósito. Si fueran el mismo, sería
- * fácil filtrar una ruta cruda al cliente o persistir una URL firmada caducable.
- */
-export const VacanteServidaSchema = VacanteRecomendadaSchema.omit({
-  cover_letter_path: true,
-}).extend({
-  cover_letter_url_firmada: z.url().nullable(),
-});
-export type VacanteServida = z.infer<typeof VacanteServidaSchema>;
+//
+// Había un tipo aparte para "la vacante tal como se le sirve al navegador",
+// porque la fila traía `cover_letter_path` y al servirla había que cambiarla por
+// una URL firmada. Desde que Tier 1 entrega **una guía por compra** y no una
+// carta por vacante (ADR-001 §A.22), la vacante ya no tiene ninguna ruta de
+// Storage: lo que se guarda y lo que se sirve son idénticos, y mantener dos
+// nombres para la misma forma solo invitaba a preguntarse cuál usar.
+//
+// La distinción no se perdió, se mudó: ahora vive en `CompraServida`, que es
+// donde quedó la ruta que hay que firmar.

@@ -3,6 +3,7 @@ import {
   LecturaCvSchema,
   PerfilSemanticoSchema,
   CompraSchema,
+  CompraServidaSchema,
   VacanteRecomendadaSchema,
   PayPalWebhookPayloadSchema,
   PerfilCompletoResponseSchema,
@@ -69,6 +70,7 @@ const compraBase = {
   temporada: 1,
   estado_pago: 'pendiente',
   transaccion_id: null,
+  guia_path: null,
   recibo_enviado_at: null,
   created_at: '2026-07-29T12:00:00.000Z',
   updated_at: '2026-07-29T12:00:00.000Z',
@@ -126,9 +128,28 @@ acepta('VacanteRecomendada con enlace externo', () =>
     empresa: 'Acme',
     fit_pct: 87,
     url_vacante: 'https://mx.computrabajo.com/vacante/123',
-    cover_letter_path: 'cover-letters/abc.pdf',
     snapshot_fecha: '2026-07-29',
   }));
+
+// La guía cuelga de la compra, no de la vacante (ADR-001 §A.22).
+acepta('Compra con la guía todavía sin generar', () =>
+  CompraSchema.parse({ ...compraBase, guia_path: null }));
+
+acepta('Compra con la ruta de su guía', () =>
+  CompraSchema.parse({
+    ...compraBase,
+    guia_path: '44444444-4444-4444-8444-444444444444/guia-abc.pdf',
+  }));
+
+acepta('CompraServida trae la guía ya firmada', () => {
+  const { guia_path, ...resto } = compraBase;
+  const c = CompraServidaSchema.parse({
+    ...resto,
+    guia_url_firmada: 'https://storage.ejemplo.com/guia.pdf?token=abc',
+  });
+  // La ruta cruda no llega al navegador: el bucket es privado y no le sirve.
+  if ('guia_path' in c) throw new Error('la ruta se filtró al tipo servido');
+});
 
 acepta('El webhook conserva campos que PayPal añada', () => {
   const r = PayPalWebhookPayloadSchema.parse({
@@ -241,9 +262,14 @@ rechaza('fit_pct fuera de 0-100', () =>
     id: '55555555-5555-4555-8555-555555555555',
     compra_id: compraBase.id,
     puesto: 'CX Manager', empresa: 'Acme', fit_pct: 140,
-    url_vacante: 'https://ejemplo.com/v', cover_letter_path: null,
+    url_vacante: 'https://ejemplo.com/v',
     snapshot_fecha: '2026-07-29',
   }));
+
+rechaza('CompraServida con una URL de guía que no es URL', () => {
+  const { guia_path, ...resto } = compraBase;
+  return CompraServidaSchema.parse({ ...resto, guia_url_firmada: 'guia-abc.pdf' });
+});
 
 rechaza('un tipo_fit inventado', () =>
   ContenidoPerfilSchema.parse({

@@ -146,8 +146,19 @@ export const CompraSchema = z.object({
    */
   transaccion_id: z.string().nullable(),
   /**
+   * Ruta en Storage de la **guía para redactar la cover letter** (ADR-001 §A.22).
+   *
+   * Cuelga de la compra y no de cada vacante porque es **una sola guía**, no una
+   * carta por vacante: repetir la misma ruta en las cinco filas, o colgarla de
+   * una elegida al azar, mentiría sobre la forma del dato.
+   *
+   * Nula mientras el entregable no se ha generado, y también en los tiers que no
+   * la incluyen. Se firma al servir, nunca se persiste firmada.
+   */
+  guia_path: z.string().nullable(),
+  /**
    * Cuándo se envió el correo de confirmación de compra vía Resend, que incluye
-   * el recibo emitido por Openpay. `null` = no enviado.
+   * el recibo emitido por el procesador. `null` = no enviado.
    *
    * **No es el CFDI.** La factura se emite manualmente vía
    * `facturas@fanware.com.mx` y no se rastrea aquí. Si algún día hiciera falta,
@@ -158,6 +169,21 @@ export const CompraSchema = z.object({
   updated_at: z.iso.datetime(),
 });
 export type Compra = z.infer<typeof CompraSchema>;
+
+/**
+ * Una compra tal como se le sirve al navegador: la ruta de Storage ya resuelta a
+ * una URL firmada de expiración corta (documento fuente §9).
+ *
+ * Es un tipo distinto del de la tabla a propósito, y hereda el papel que tenía
+ * `VacanteServida` antes de que la guía se mudara aquí. Si fueran el mismo, sería
+ * fácil filtrar una ruta cruda al cliente —que no le sirve de nada, porque el
+ * bucket es privado— o persistir una URL que caduca en minutos.
+ */
+export const CompraServidaSchema = CompraSchema.omit({ guia_path: true }).extend({
+  /** URL firmada de la guía, o `null` si todavía no existe o el tier no la incluye. */
+  guia_url_firmada: z.url().nullable(),
+});
+export type CompraServida = z.infer<typeof CompraServidaSchema>;
 
 // ---------------------------------------------------------------------------
 // Contratos de API (ADR-001 §5)

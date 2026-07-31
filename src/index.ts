@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PerfilSemanticoSchema } from './perfil.schema.js';
-import { CompraSchema } from './compra.schema.js';
-import { StringBooleanoSchema, VacanteServidaSchema } from './vacante.schema.js';
+import { CompraServidaSchema } from './compra.schema.js';
+import { StringBooleanoSchema, VacanteRecomendadaSchema } from './vacante.schema.js';
 
 export * from './perfil.schema.js';
 export * from './compra.schema.js';
@@ -27,8 +27,13 @@ export const PerfilCompletoResponseSchema = z.object({
     /** URL firmada de expiración corta, o null si el PDF aún no existe. */
     pdf_url_firmada: z.url().nullable(),
   }),
-  compras: z.array(CompraSchema),
-  vacantes: z.array(VacanteServidaSchema),
+  /** Con la guía ya firmada: el panel nunca ve rutas de Storage. */
+  compras: z.array(CompraServidaSchema),
+  /**
+   * Sin traducción: desde que la guía es una por compra, la vacante no tiene
+   * ninguna ruta que firmar y lo que se guarda es lo que se sirve.
+   */
+  vacantes: z.array(VacanteRecomendadaSchema),
   strings_booleanos: z.array(StringBooleanoSchema),
 });
 export type PerfilCompletoResponse = z.infer<

@@ -28,6 +28,18 @@ major rompe silenciosamente al otro repo (ADR-001 §9).
   **`.vacantes` a `VacanteRecomendada[]`**.
 
 ### Añadido
+- **`VacanteRecomendada.motivo`** — por qué esa vacante le queda, en una frase
+  dirigida al candidato. El puntuador de fit ya lo produce y hasta ahora se
+  descartaba.
+
+  Un porcentaje solo, en el entregable que se cobra, se lee como arbitrario. Lo
+  que sostiene el producto es que el número sea honesto, y los motivos reales lo
+  demuestran porque incluyen el pero: *"…aunque el sector manufactura sería nuevo
+  para ti"*. Tope de 400 caracteres, generoso a propósito: debe ser una frase
+  —eso lo pide el prompt— y el límite solo evita que un desbordamiento del modelo
+  reviente la maquetación, sin convertir un motivo largo en una entrega fallida
+  para alguien que ya pagó.
+
 - **`Compra.guia_path`** — ruta en Storage de la guía. Nula mientras no se ha
   generado, y también en los tiers que no la incluyen.
 - **`CompraServida`** — la compra tal como se le sirve al navegador, con

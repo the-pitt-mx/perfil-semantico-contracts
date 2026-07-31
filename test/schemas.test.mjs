@@ -128,6 +128,7 @@ acepta('VacanteRecomendada con enlace externo', () =>
     empresa: 'Acme',
     fit_pct: 87,
     url_vacante: 'https://mx.computrabajo.com/vacante/123',
+    motivo: 'Tu experiencia coordinando turnos responde a lo que piden en piso de venta.',
     snapshot_fecha: '2026-07-29',
   }));
 
@@ -262,7 +263,16 @@ rechaza('fit_pct fuera de 0-100', () =>
     id: '55555555-5555-4555-8555-555555555555',
     compra_id: compraBase.id,
     puesto: 'CX Manager', empresa: 'Acme', fit_pct: 140,
-    url_vacante: 'https://ejemplo.com/v',
+    url_vacante: 'https://ejemplo.com/v', motivo: 'Porque si.',
+    snapshot_fecha: '2026-07-29',
+  }));
+
+rechaza('una vacante sin motivo: el porcentaje solo se lee como arbitrario', () =>
+  VacanteRecomendadaSchema.parse({
+    id: '55555555-5555-4555-8555-555555555555',
+    compra_id: compraBase.id,
+    puesto: 'CX Manager', empresa: 'Acme', fit_pct: 87,
+    url_vacante: 'https://ejemplo.com/v', motivo: '',
     snapshot_fecha: '2026-07-29',
   }));
 

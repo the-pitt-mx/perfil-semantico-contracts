@@ -25,6 +25,21 @@ export const VacanteRecomendadaSchema = z.object({
   fit_pct: z.number().int().min(0).max(100),
   /** Enlace a la publicación original de la vacante. */
   url_vacante: z.url(),
+  /**
+   * Por qué esta vacante le queda, en una frase dirigida al candidato.
+   *
+   * Es lo que convierte un "76%" en algo que se entiende y se puede rebatir. Un
+   * porcentaje solo, en el entregable que se cobra, se lee como arbitrario — y
+   * la honestidad del número es justamente lo que sostiene el producto: los
+   * motivos reales incluyen el pero ("el sector manufactura sería nuevo para
+   * ti").
+   *
+   * El tope es generoso a propósito. Debe ser una frase, y eso lo pide el
+   * prompt; el límite de aquí solo evita que un desbordamiento del modelo
+   * reviente la maquetación, sin convertir un motivo largo en una entrega
+   * fallida para alguien que ya pagó.
+   */
+  motivo: z.string().min(1).max(400),
   /** Fecha en que se capturó la vacante (ISO 8601, solo fecha). */
   snapshot_fecha: z.iso.date(),
 });

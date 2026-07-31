@@ -21,8 +21,9 @@ import { ProcesadorPagoSchema } from './webhook-pago.types.js';
  * - `tier_3` — refill: otras 5 vacantes sobre el perfil original, sin regenerarlo.
  * - `reinicio_perfil` — CV nuevo: perfil nuevo y cobro de Tier 1 + Tier 2 juntos.
  *
- * `tier_1_2` existe porque un checkout produce **una** transacción de Openpay, y
- * `openpay_transaction_id` es único: dos filas de compra no pueden compartirlo.
+ * `tier_1_2` existe porque un checkout produce **una** transacción en el
+ * procesador, y `transaccion_id` es único: dos filas de compra no pueden
+ * compartirlo.
  * Guardar el paquete como un valor propio mantiene esa defensa contra duplicados
  * intacta, y sigue el precedente que el propio modelo ya tenía con
  * `reinicio_perfil`.
@@ -92,7 +93,7 @@ export type Temporada = z.infer<typeof TemporadaSchema>;
  * `pendiente` y `expirada` vienen del documento fuente §4: toda compra nace en
  * `pendiente` al crear el checkout, y pasa a `expirada` si sigue así tras el
  * umbral largo (~24h). `fallida` se añadió en Fase 1 porque un rechazo explícito
- * de Openpay no es lo mismo que expirar por silencio: el rechazo se le puede
+ * del procesador no es lo mismo que expirar por silencio: el rechazo se le puede
  * comunicar al cliente de inmediato.
  */
 export const EstadoPagoSchema = z.enum([

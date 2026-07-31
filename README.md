@@ -72,10 +72,10 @@ Un cambio breaking sin subir major rompe silenciosamente al otro repo (ADR-001 Â
 ```
 src/
   perfil.schema.ts          PerfilSemantico, versiÃ³n, estado
-  compra.schema.ts          Compra, EstadoPago, Tier, Temporada
-  vacante.schema.ts         VacanteRecomendada, CoverLetter
-  webhook-openpay.types.ts  Payload del webhook de Openpay
-  index.ts                  re-exporta todo
+  compra.schema.ts          Compra, CompraServida, EstadoPago, Tier, Temporada
+  vacante.schema.ts         VacanteRecomendada, StringBooleano
+  webhook-pago.types.ts     Payload del webhook del procesador de pagos
+  index.ts                  re-exporta todo y compone PerfilCompletoResponse
 ```
 
 ## Comandos

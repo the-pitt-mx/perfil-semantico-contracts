@@ -105,6 +105,56 @@ export const EstadoPagoSchema = z.enum([
 export type EstadoPago = z.infer<typeof EstadoPagoSchema>;
 
 /**
+ * En qué punto va el entregable de una compra.
+ *
+ * Es distinto de `estado_pago` y hay que resistir la tentación de juntarlos: el
+ * dinero y la entrega fallan por separado, y el caso que más importa —pagada y
+ * sin entregar— solo se puede nombrar si son dos ejes.
+ *
+ * Cuatro estados y no un booleano `entregado`: "todavía no empieza", "está
+ * corriendo" y "se rompió" es justo lo que el panel necesita distinguir, y un
+ * booleano las aplasta en el mismo silencio.
+ */
+export const EstadoEntregableSchema = z.enum([
+  'pendiente',
+  'generando',
+  'entregado',
+  'fallido',
+]);
+export type EstadoEntregable = z.infer<typeof EstadoEntregableSchema>;
+
+/**
+ * ¿Este cobro promete vacantes?
+ *
+ * Se resuelve con `TIERS_OTORGADOS` y no comparando el tier a mano, o se
+ * olvidaría `reinicio_perfil`, que es el cobro más caro.
+ *
+ * Vive aquí y no en `api` porque tiene tres consumidores que tienen que coincidir:
+ * el generador, el vigilante de compras pagadas sin entregable, y el panel —que
+ * necesita saber si esperar algo antes de enseñar "estamos buscando tus
+ * vacantes". Si divergieran, el panel prometería lo que nadie va a generar.
+ */
+export function prometeVacantes(tier: Tier): boolean {
+  const otorga = TIERS_OTORGADOS[tier];
+  return otorga.includes('tier_1') || otorga.includes('tier_3');
+}
+
+/** ¿Este cobro promete strings booleanos de búsqueda? */
+export function prometeStrings(tier: Tier): boolean {
+  return TIERS_OTORGADOS[tier].includes('tier_2');
+}
+
+/**
+ * ¿Hay algo que generar por esta compra?
+ *
+ * `gratis` no se cobra y no entrega nada por esta vía, así que su entregable no
+ * llega nunca a `generando` y el panel no debe quedarse esperándolo.
+ */
+export function prometeEntregable(tier: Tier): boolean {
+  return prometeVacantes(tier) || prometeStrings(tier);
+}
+
+/**
  * Tabla `compras`.
  *
  * `precio_centavos_mxn` guarda **el monto realmente cobrado en esta
@@ -157,6 +207,22 @@ export const CompraSchema = z.object({
    * la incluyen. Se firma al servir, nunca se persiste firmada.
    */
   guia_path: z.string().nullable(),
+  entregable_estado: EstadoEntregableSchema,
+  /**
+   * Por qué no se pudo entregar, redactado para leerse tal cual en el panel.
+   *
+   * Mismo papel que `perfiles_semanticos.motivo_fallo`, y por la misma razón: sin
+   * él, quien pagó ve que algo no llegó y no sabe si esperar, escribir o dar el
+   * dinero por perdido. Nulo salvo en `fallido`, con constraint en la base.
+   *
+   * No lleva dato personal — lo escribe el Worker, no el modelo.
+   */
+  entregable_motivo_fallo: z.string().nullable(),
+  /**
+   * Cuántas veces se ha lanzado la generación del entregable. Tope de gasto: cada
+   * intento cuesta puntuación de fit y una llamada a Adzuna.
+   */
+  entregable_intentos: z.number().int().nonnegative(),
   /**
    * Cuándo se envió el correo de confirmación de compra vía Resend, que incluye
    * el recibo emitido por el procesador. `null` = no enviado.
@@ -206,3 +272,33 @@ export const CheckoutResponseSchema = z.object({
   checkout_url: z.url(),
 });
 export type CheckoutResponse = z.infer<typeof CheckoutResponseSchema>;
+
+/**
+ * `GET /precios` — la lista vigente, pública y sin sesión.
+ *
+ * Existe porque el botón de compra necesita una cifra antes de que nadie se
+ * identifique, y la cifra depende de `TEMPORADA`, que es variable de entorno del
+ * Worker para poder cambiarse sin desplegar. Una copia en el frontend anunciaría
+ * $79 el día que el cobro real ya sea $129, y quien lo descubriera lo haría en la
+ * pantalla de PayPal.
+ *
+ * **Aquí va la forma, nunca los importes.** Este paquete es público: los precios
+ * y su lógica de temporada viven en el Worker.
+ *
+ * Es una lista y no un objeto por tier porque el orden es información: es el
+ * orden en que conviene enseñarlos.
+ */
+export const PrecioTierSchema = z.object({
+  tier: TierSchema,
+  /** Centavos enteros, como en `compras.precio_centavos_mxn`. Nunca flotantes para dinero. */
+  centavos: z.number().int().nonnegative(),
+  /** Qué se lleva quien lo compre, redactado para mostrarse tal cual. */
+  concepto: z.string().min(1),
+});
+export type PrecioTier = z.infer<typeof PrecioTierSchema>;
+
+export const PreciosResponseSchema = z.object({
+  temporada: TemporadaSchema,
+  tiers: z.array(PrecioTierSchema),
+});
+export type PreciosResponse = z.infer<typeof PreciosResponseSchema>;

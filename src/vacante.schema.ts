@@ -54,6 +54,14 @@ export type VacanteRecomendada = z.infer<typeof VacanteRecomendadaSchema>;
 export const StringBooleanoSchema = z.object({
   id: z.uuid(),
   compra_id: z.uuid(),
+  /**
+   * Para qué sirve esta cadena, dirigido al candidato: "Búsqueda amplia por
+   * título", "Títulos + tus habilidades".
+   *
+   * Se entrega más de una, y sin nombre son borrones casi idénticos: el
+   * entregable que promete autonomía acabaría produciendo la duda de cuál pegar.
+   */
+  etiqueta: z.string().min(1),
   /** La cadena de búsqueda booleana lista para pegar en un portal de empleo. */
   contenido: z.string().min(1),
 });

@@ -7,6 +7,39 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.9.0] — 2026-08-01
+
+### Añadido (breaking)
+- **`Compra` gana `entregable_estado`, `entregable_motivo_fallo` y
+  `entregable_intentos`** (migración 0016). Un perfil sabía decir que falló
+  —`estado` y `motivo_fallo`—; una compra no, y es al revés de como debería ser,
+  porque ahí el dinero ya cambió de manos.
+
+  Hasta ahora el estado del entregable se **infería**, y las dos inferencias que
+  existían estaban mal: el panel tendría que mirar `guia_path` (funciona por
+  accidente, porque la guía se escribe al final), y el vigilante preguntaba "¿hay
+  al menos una vacante?" — pero una entrega correcta puede traer **cero**, que es
+  la regla del umbral de fit, no un fallo (§B.12). Y cuando la generación reventaba
+  de verdad no quedaba rastro en la base: el panel giraba para siempre sobre un
+  cobro ya hecho.
+
+  Es breaking porque los tres campos son requeridos: un consumidor en 0.8.0 que
+  reciba esta forma no la valida.
+
+- **`StringBooleano` gana `etiqueta`.** Tier 2 entrega varias cadenas y sin nombre
+  son borrones casi idénticos: el entregable que promete autonomía acababa
+  produciendo la duda de cuál pegar.
+
+- **`EstadoEntregable`**, `prometeVacantes()`, `prometeStrings()` y
+  `prometeEntregable()`. Las tres funciones vivían —o iban a vivir— en `api`, pero
+  tienen tres consumidores que deben coincidir: el generador, el vigilante y el
+  panel, que necesita saber si esperar algo antes de enseñar "estamos buscando tus
+  vacantes". Si divergieran, el panel prometería lo que nadie va a generar.
+
+- **`PreciosResponse` y `PrecioTier`** para `GET /precios`. Solo la forma: este
+  paquete es público y los importes viven en el Worker, que es quien conoce la
+  temporada vigente.
+
 ## [0.8.0] — 2026-07-31
 
 ### Cambiado (breaking)

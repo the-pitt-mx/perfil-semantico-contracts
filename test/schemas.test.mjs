@@ -9,6 +9,9 @@ import {
   PerfilCompletoResponseSchema,
   LEYENDA_FITS,
   tieneAcceso,
+  prometeVacantes,
+  prometeStrings,
+  prometeEntregable,
 } from '../dist/index.js';
 
 let ok = 0;
@@ -71,6 +74,9 @@ const compraBase = {
   estado_pago: 'pendiente',
   transaccion_id: null,
   guia_path: null,
+  entregable_estado: 'pendiente',
+  entregable_motivo_fallo: null,
+  entregable_intentos: 0,
   recibo_enviado_at: null,
   created_at: '2026-07-29T12:00:00.000Z',
   updated_at: '2026-07-29T12:00:00.000Z',
@@ -150,6 +156,66 @@ acepta('CompraServida trae la guía ya firmada', () => {
   });
   // La ruta cruda no llega al navegador: el bucket es privado y no le sirve.
   if ('guia_path' in c) throw new Error('la ruta se filtró al tipo servido');
+});
+
+// El pago y la entrega fallan por separado: esto es lo que permite nombrar el
+// caso que más importa, pagada y sin entregar.
+acepta('Compra pagada con el entregable todavía generando', () =>
+  CompraSchema.parse({
+    ...compraBase,
+    estado_pago: 'pagada',
+    transaccion_id: '8XY12345AB678901C',
+    entregable_estado: 'generando',
+    entregable_intentos: 1,
+  }));
+
+acepta('Compra pagada cuyo entregable falló, con motivo para el panel', () =>
+  CompraSchema.parse({
+    ...compraBase,
+    estado_pago: 'pagada',
+    transaccion_id: '8XY12345AB678901C',
+    entregable_estado: 'fallido',
+    entregable_motivo_fallo:
+      'No pudimos completar la búsqueda de vacantes. Ya lo estamos revisando y te escribimos en cuanto esté.',
+    entregable_intentos: 2,
+  }));
+
+// Cero vacantes es una entrega legítima, no un fallo: manda el umbral de fit
+// (ADR-001 §B.12). Si el estado no lo dijera, habría que inferirlo contando
+// vacantes y una entrega impecable se leería como rota.
+acepta('Entregado sin ninguna vacante: la entrega correcta puede venir vacía', () =>
+  PerfilCompletoResponseSchema.parse({
+    perfil: { ...perfilBase, pdf_url_firmada: null },
+    compras: [
+      (() => {
+        const { guia_path, ...resto } = compraBase;
+        return {
+          ...resto,
+          tier: 'tier_1',
+          estado_pago: 'pagada',
+          transaccion_id: '8XY12345AB678901C',
+          entregable_estado: 'entregado',
+          entregable_intentos: 1,
+          guia_url_firmada: 'https://storage.ejemplo.com/guia.pdf?token=abc',
+        };
+      })(),
+    ],
+    vacantes: [],
+    strings_booleanos: [],
+  }));
+
+// Las tres reglas se resuelven con TIERS_OTORGADOS, nunca comparando el tier a
+// mano: reinicio_perfil es el cobro más caro y es justo el que se olvida.
+acepta('reinicio_perfil promete vacantes y strings, como tier_1_2', () => {
+  for (const tier of ['tier_1', 'tier_1_2', 'tier_3', 'reinicio_perfil']) {
+    if (!prometeVacantes(tier)) throw new Error(`${tier} debía prometer vacantes`);
+  }
+  for (const tier of ['tier_2', 'tier_1_2', 'reinicio_perfil']) {
+    if (!prometeStrings(tier)) throw new Error(`${tier} debía prometer strings`);
+  }
+  if (prometeVacantes('tier_2')) throw new Error('tier_2 no entrega vacantes');
+  if (prometeStrings('tier_1')) throw new Error('tier_1 suelto no entrega strings');
+  if (prometeEntregable('gratis')) throw new Error('gratis no entrega nada por esta vía');
 });
 
 acepta('El webhook conserva campos que PayPal añada', () => {
@@ -292,6 +358,19 @@ rechaza('temporada 4, que no existe', () =>
 
 rechaza('precio con decimales: debe ser centavos enteros', () =>
   CompraSchema.parse({ ...compraBase, precio_centavos_mxn: 79.5 }));
+
+// `entregado` es del entregable y `pagada` del pago: cruzarlos deja pasar una
+// compra que dice haber entregado sin decir si le cobraron.
+rechaza('un estado de entregable que no existe', () =>
+  CompraSchema.parse({ ...compraBase, entregable_estado: 'pagada' }));
+
+rechaza('intentos negativos de generación', () =>
+  CompraSchema.parse({ ...compraBase, entregable_intentos: -1 }));
+
+rechaza('compra sin estado de entregable: volvería a inferirse de la guía', () => {
+  const { entregable_estado, ...sinEstado } = compraBase;
+  CompraSchema.parse(sinEstado);
+});
 
 rechaza('compra sin email_cliente: registro fiscal incompleto', () => {
   const { email_cliente, ...sinCorreo } = compraBase;

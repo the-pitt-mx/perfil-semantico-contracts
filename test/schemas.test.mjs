@@ -11,7 +11,11 @@ import {
   tieneAcceso,
   prometeVacantes,
   prometeStrings,
+  prometeCv,
   prometeEntregable,
+  exigeTerminos,
+  CvRedactadoSchema,
+  VERSION_TERMINOS_CV,
 } from '../dist/index.js';
 
 let ok = 0;
@@ -77,6 +81,8 @@ const compraBase = {
   entregable_estado: 'pendiente',
   entregable_motivo_fallo: null,
   entregable_intentos: 0,
+  terminos_aceptados_at: null,
+  terminos_version: null,
   recibo_enviado_at: null,
   created_at: '2026-07-29T12:00:00.000Z',
   updated_at: '2026-07-29T12:00:00.000Z',
@@ -185,7 +191,7 @@ acepta('Compra pagada cuyo entregable falló, con motivo para el panel', () =>
 // vacantes y una entrega impecable se leería como rota.
 acepta('Entregado sin ninguna vacante: la entrega correcta puede venir vacía', () =>
   PerfilCompletoResponseSchema.parse({
-    perfil: { ...perfilBase, pdf_url_firmada: null },
+    perfil: { ...perfilBase, pdf_url_firmada: null, idioma_cv: 'es', cv_original_disponible: true },
     compras: [
       (() => {
         const { guia_path, ...resto } = compraBase;
@@ -202,6 +208,7 @@ acepta('Entregado sin ninguna vacante: la entrega correcta puede venir vacía', 
     ],
     vacantes: [],
     strings_booleanos: [],
+    cvs_redactados: [],
   }));
 
 // Las tres reglas se resuelven con TIERS_OTORGADOS, nunca comparando el tier a
@@ -216,6 +223,93 @@ acepta('reinicio_perfil promete vacantes y strings, como tier_1_2', () => {
   if (prometeVacantes('tier_2')) throw new Error('tier_2 no entrega vacantes');
   if (prometeStrings('tier_1')) throw new Error('tier_1 suelto no entrega strings');
   if (prometeEntregable('gratis')) throw new Error('gratis no entrega nada por esta vía');
+});
+
+const cvRedactado = {
+  nombre_completo: 'Estefanía Altamira Padilla',
+  titulo_objetivo: 'Customer Experience Lead',
+  contacto: 'ejemplo@correo.com · +52 55 1234 5678 · CDMX',
+  resumen: 'Ocho años operando procesos de atención en retail.',
+  experiencia: [
+    {
+      puesto: 'Coordinadora de Atención',
+      empresa: 'Tienda Ejemplo',
+      periodo: '2019 — 2023',
+      logros: ['Gestión de escalaciones de nivel 2 sin llegar a dirección.'],
+    },
+  ],
+  habilidades: ['Gestión de escalaciones'],
+  formacion: ['Lic. en Administración'],
+  idiomas: ['Español', 'Inglés'],
+  recomendaciones_pendientes: [],
+};
+
+acepta('CvRedactado con todo aplicado y sin pendientes', () =>
+  CvRedactadoSchema.parse(cvRedactado));
+
+// El caso que obliga a que exista el campo: la nota estratégica pide un dato que
+// solo el candidato tiene, y si no lo aportó no se inventa — se dice.
+acepta('CvRedactado que declara lo que no se pudo aplicar', () => {
+  const cv = CvRedactadoSchema.parse({
+    ...cvRedactado,
+    recomendaciones_pendientes: [
+      {
+        recomendacion: 'Cuantifica el volumen de casos que gestionaste al mes.',
+        donde: 'En tus logros de Coordinadora de Atención.',
+      },
+    ],
+  });
+  if (cv.recomendaciones_pendientes.length !== 1) throw new Error('se perdió el pendiente');
+});
+
+acepta('CvRedactado sin experiencia todavía es válido', () =>
+  // Un CV de alguien que empieza. Exigir al menos un puesto obligaría al modelo a
+  // inventarse uno para pasar la validación, que es el fallo peor posible aquí.
+  CvRedactadoSchema.parse({ ...cvRedactado, experiencia: [], formacion: [], idiomas: [] }));
+
+// Un puesto antiguo sin relación con el objetivo se deja solo con puesto, empresa
+// y fechas: sostiene la continuidad del historial sin robarle atención a lo que
+// importa. Exigir una viñeta obligaría a redactar relleno.
+acepta('un puesto antiguo puede quedarse sin viñetas', () =>
+  CvRedactadoSchema.parse({
+    ...cvRedactado,
+    experiencia: [
+      ...cvRedactado.experiencia,
+      { puesto: 'Cajera', empresa: 'Otro Comercio', periodo: '2015 — 2017', logros: [] },
+    ],
+  }));
+
+acepta('cv_redactado se otorga a sí mismo y no lo da ningún otro tier', () => {
+  if (!prometeCv('cv_redactado')) throw new Error('cv_redactado debía prometer el CV');
+  if (!prometeEntregable('cv_redactado')) throw new Error('debía contar como entregable');
+  // reinicio_perfil es el cobro más caro y otorga Tier 1 y 2, pero NO el CV: si
+  // algún día lo incluyera, es una decisión de negocio, no un descuido de código.
+  for (const tier of ['tier_1', 'tier_2', 'tier_1_2', 'tier_3', 'reinicio_perfil', 'gratis']) {
+    if (prometeCv(tier)) throw new Error(`${tier} no debía prometer CV redactado`);
+  }
+  // Y no arrastra vacantes ni strings: se vende suelto desde el perfil gratuito.
+  if (prometeVacantes('cv_redactado')) throw new Error('el CV no entrega vacantes');
+  if (prometeStrings('cv_redactado')) throw new Error('el CV no entrega strings');
+});
+
+acepta('solo el CV redactado exige aceptar términos', () => {
+  if (!exigeTerminos('cv_redactado')) throw new Error('el CV redactado sí los exige');
+  for (const tier of ['tier_1', 'tier_2', 'tier_1_2', 'tier_3', 'reinicio_perfil']) {
+    if (exigeTerminos(tier)) throw new Error(`${tier} no presenta nada a un tercero`);
+  }
+});
+
+acepta('la compra guarda qué versión de los términos se aceptó', () => {
+  // Sin la versión, la fecha no prueba nada: si el texto cambiara, lo aceptado
+  // dejaría de ser lo que hoy se muestra.
+  const c = CompraSchema.parse({
+    ...compraBase,
+    tier: 'cv_redactado',
+    precio_centavos_mxn: 29_900,
+    terminos_aceptados_at: '2026-08-01T12:00:00.000Z',
+    terminos_version: VERSION_TERMINOS_CV,
+  });
+  if (c.terminos_version !== VERSION_TERMINOS_CV) throw new Error('se perdió la versión');
 });
 
 acepta('El webhook conserva campos que PayPal añada', () => {
@@ -255,6 +349,10 @@ acepta('PerfilCompletoResponse con hub vacío', () =>
       version: 1,
       contenido,
       pdf_url_firmada: 'https://x.supabase.co/storage/v1/object/sign/a?token=b',
+      // Un CV ingerido antes de la migración 0017 no trae idioma. El panel tiene
+      // que saber caer a la oferta genérica en vez de asumir español.
+      idioma_cv: null,
+      cv_original_disponible: true,
       estado: 'activo',
       motivo_fallo: null,
       created_at: '2026-07-29T12:00:00.000Z',
@@ -262,6 +360,7 @@ acepta('PerfilCompletoResponse con hub vacío', () =>
     compras: [],
     vacantes: [],
     strings_booleanos: [],
+    cvs_redactados: [],
   }));
 
 acepta('LecturaCv: el archivo sí era un CV', () =>

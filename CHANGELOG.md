@@ -7,6 +7,58 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.10.0] — 2026-08-01
+
+### Añadido (breaking)
+- **Tier 4: `cv_redactado` y `cv_bilingue`.** Se redacta el CV del candidato a
+  partir de su CV original y de su perfil semántico, apuntado a sus posiciones de
+  fit directo. Se llaman por lo que hacen y no `tier_4`, siguiendo a
+  `reinicio_perfil`: van en dirección opuesta a él —uno recibe un CV del
+  candidato, el otro se lo entrega— y con nombres numerados sería cuestión de
+  tiempo que alguien escribiera uno donde iba el otro.
+
+- **`CvRedactado`, `CvRedactadoFila`, `Experiencia`, `RecomendacionPendiente`.**
+  Estructura y no un bloque de texto: de ahí salen la hoja del panel, el
+  `text/html` del portapapeles, el `text/plain` y el PDF. Con un blob habría que
+  reconstruir la estructura cuatro veces y las cuatro divergirían.
+
+  `Experiencia.logros` **puede venir vacío**: los puestos antiguos que no tienen
+  que ver con el objetivo se dejan solo con puesto, empresa y periodo. Exigir una
+  viñeta obligaría a redactar relleno.
+
+  `recomendaciones_pendientes` existe porque `nota_estrategica` casi siempre pide
+  datos que solo el candidato tiene. La recomendación la aplica él; la redacción,
+  nosotros. Cuando llega sin aplicar **se dice**, con la misma lógica con la que
+  se entregan menos de cinco vacantes y se explica por qué.
+
+- **`IdiomaCv`** (`es` | `en`) y el idioma en `CvRedactadoFila`. El CV se redacta
+  en el idioma del original: traducir sin preguntar un CV en inglés no es una
+  mejora, es cambiarle la herramienta a quien apunta a multinacionales.
+
+- **`Compra` gana `terminos_aceptados_at` y `terminos_version`**, y
+  `CheckoutRequest` gana `terminos_version`. Viaja el **número de versión**, no un
+  booleano: un `acepto: true` no dice *qué* se aceptó, y el día que el texto
+  cambie no habría forma de saber si la casilla decía lo mismo. Es dato
+  contractual, así que **sobrevive a la supresión** junto a la compra.
+
+- **`TEXTO_TERMINOS_CV` y `VERSION_TERMINOS_CV`.** Viven aquí y no en la web
+  porque la versión aceptada se persiste: el Worker rechaza una versión que no sea
+  la vigente, o estaríamos recogiendo el consentimiento de un texto que ya no se
+  muestra.
+
+- **`PerfilCompletoResponse` gana `cvs_redactados`**, y su `perfil` gana
+  `idioma_cv` y `cv_original_disponible`. Los dos últimos los necesita el panel
+  **antes** de cobrar: uno para pedir el archivo en vez de vender, el otro para la
+  copy del bilingüe.
+
+- **`prometeCv()` y `exigeTerminos()`.** Solo el CV redactado exige términos: es
+  el único entregable que la persona presenta como suyo ante un tercero, y por
+  tanto el único donde lo que edite después tiene consecuencias para ella.
+
+Es breaking por los campos requeridos nuevos en `Compra` y en
+`PerfilCompletoResponse`: un consumidor en 0.9.0 que reciba esta forma no la
+valida.
+
 ## [0.9.0] — 2026-08-01
 
 ### Añadido (breaking)

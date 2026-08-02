@@ -35,6 +35,8 @@ export const TierSchema = z.enum([
   'tier_1_2',
   'tier_3',
   'reinicio_perfil',
+  'cv_redactado',
+  'cv_bilingue',
 ]);
 export type Tier = z.infer<typeof TierSchema>;
 
@@ -53,6 +55,15 @@ export const TIERS_OTORGADOS: Record<Tier, readonly Tier[]> = {
   tier_1_2: ['tier_1', 'tier_2'],
   tier_3: ['tier_3'],
   reinicio_perfil: ['tier_1', 'tier_2'],
+  // Se llama por lo que hace y no `tier_4` a propósito, siguiendo a
+  // `reinicio_perfil`. Los dos tocan el CV en direcciones opuestas —uno lo recibe
+  // del candidato, el otro se lo entrega— y con nombres numerados sería cuestión
+  // de tiempo que alguien escribiera uno donde iba el otro. Es la misma trampa
+  // que §B.10 documenta con "posiciones recomendadas".
+  cv_redactado: ['cv_redactado'],
+  // Otorga también el base: quien compró el bilingüe tiene todo lo que tiene
+  // quien compró el sencillo, y `tieneAcceso` lo resuelve sin casos especiales.
+  cv_bilingue: ['cv_redactado', 'cv_bilingue'],
 };
 
 /**
@@ -144,6 +155,22 @@ export function prometeStrings(tier: Tier): boolean {
   return TIERS_OTORGADOS[tier].includes('tier_2');
 }
 
+/** ¿Este cobro promete un CV redactado? */
+export function prometeCv(tier: Tier): boolean {
+  return TIERS_OTORGADOS[tier].includes('cv_redactado');
+}
+
+/**
+ * ¿Este tier exige aceptar los términos antes de cobrar?
+ *
+ * Solo el CV redactado: es el único entregable que la persona presenta como suyo
+ * ante un tercero, y por tanto el único donde lo que edite después tiene
+ * consecuencias para ella.
+ */
+export function exigeTerminos(tier: Tier): boolean {
+  return prometeCv(tier);
+}
+
 /**
  * ¿Hay algo que generar por esta compra?
  *
@@ -151,7 +178,7 @@ export function prometeStrings(tier: Tier): boolean {
  * llega nunca a `generando` y el panel no debe quedarse esperándolo.
  */
 export function prometeEntregable(tier: Tier): boolean {
-  return prometeVacantes(tier) || prometeStrings(tier);
+  return prometeVacantes(tier) || prometeStrings(tier) || prometeCv(tier);
 }
 
 /**
@@ -224,6 +251,22 @@ export const CompraSchema = z.object({
    */
   entregable_intentos: z.number().int().nonnegative(),
   /**
+   * Cuándo aceptó los términos del CV redactado, o `null` si el tier no los pide.
+   *
+   * Vive en `compras` y **no** en una tabla de entregables a propósito: es parte
+   * del contrato, no del contenido. Por eso tiene que sobrevivir a la supresión de
+   * datos personales junto a la compra — el día que hiciera falta demostrar qué se
+   * aceptó es precisamente después de que alguien pidiera borrar sus datos.
+   */
+  terminos_aceptados_at: z.iso.datetime().nullable(),
+  /**
+   * Qué versión del texto aceptó (`VERSION_TERMINOS_CV`).
+   *
+   * Sin esto, guardar la fecha no prueba nada: si el texto cambiara, lo aceptado
+   * dejaría de ser lo que hoy se muestra.
+   */
+  terminos_version: z.number().int().positive().nullable(),
+  /**
    * Cuándo se envió el correo de confirmación de compra vía Resend, que incluye
    * el recibo emitido por el procesador. `null` = no enviado.
    *
@@ -264,6 +307,17 @@ export type CompraServida = z.infer<typeof CompraServidaSchema>;
  */
 export const CheckoutRequestSchema = z.object({
   perfil_id: z.uuid(),
+  /**
+   * Qué versión de los términos aceptó, en los tiers que los exigen
+   * (`exigeTerminos`). Ausente en los demás.
+   *
+   * Viaja el **número de versión**, no un booleano: un `acepto: true` no dice
+   * *qué* aceptó, y el día que el texto cambie no habría forma de saber si la
+   * casilla que marcó decía lo mismo que la de hoy. El Worker lo compara contra
+   * su propia `VERSION_TERMINOS_CV` y rechaza si no coinciden — una web con
+   * caché vieja estaría recogiendo el consentimiento de un texto que ya no es.
+   */
+  terminos_version: z.number().int().positive().optional(),
 });
 export type CheckoutRequest = z.infer<typeof CheckoutRequestSchema>;
 

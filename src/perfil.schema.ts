@@ -173,8 +173,16 @@ export type LecturaCv = z.infer<typeof LecturaCvSchema>;
  * perfil el anterior no se borra, se archiva, para no romper las compras
  * históricas que apuntan a él. Los otros tres se añadieron en Fase 1 porque la
  * generación es asíncrona y puede fallar (ver ADR-001 §B.1).
+ *
+ * `esperando_correo` es anterior a todos ellos y existe por dinero: el perfil se
+ * crea al subir el CV, pero **no se encola nada** hasta que el candidato abre el
+ * enlace de acceso. Antes se generaba de inmediato, así que un correo inventado
+ * costaba ~$1.85 MXN igual que uno real, sin tope ni rate limit. Es un estado y
+ * no un booleano porque el cron de recuperación reencola lo que lleve rato en
+ * `generando`: dejarlo ahí se habría generado solo (migración 0021).
  */
 export const EstadoPerfilSchema = z.enum([
+  'esperando_correo',
   'generando',
   'activo',
   'reemplazado',

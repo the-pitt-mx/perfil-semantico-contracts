@@ -46,6 +46,19 @@ export const PerfilCompletoResponseSchema = z.object({
      * evitar.
      */
     cv_original_disponible: z.boolean(),
+    /**
+     * El CV que subió, para que pueda descargarlo.
+     *
+     * Se sirve firmada y de vida corta, igual que el PDF del perfil: el bucket es
+     * privado porque el documento lleva su historial laboral entero, así que sin
+     * esto **el candidato no puede recuperar su propio currículum** — lo tenemos
+     * nosotros y él no.
+     *
+     * Nula cuando ya no se conserva el archivo. No se deduce de
+     * `cv_original_disponible`: son el mismo hecho visto desde dos sitios, y quien
+     * las lea debe poder confiar en cada una por separado.
+     */
+    cv_original_url_firmada: z.url().nullable(),
   }),
   /** Con la guía ya firmada: el panel nunca ve rutas de Storage. */
   compras: z.array(CompraServidaSchema),

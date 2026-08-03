@@ -191,7 +191,7 @@ acepta('Compra pagada cuyo entregable falló, con motivo para el panel', () =>
 // vacantes y una entrega impecable se leería como rota.
 acepta('Entregado sin ninguna vacante: la entrega correcta puede venir vacía', () =>
   PerfilCompletoResponseSchema.parse({
-    perfil: { ...perfilBase, pdf_url_firmada: null, idioma_cv: 'es', cv_original_disponible: true },
+    perfil: { ...perfilBase, pdf_url_firmada: null, idioma_cv: 'es', cv_original_disponible: true, cv_original_url_firmada: null },
     compras: [
       (() => {
         const { guia_path, ...resto } = compraBase;
@@ -353,6 +353,7 @@ acepta('PerfilCompletoResponse con hub vacío', () =>
       // que saber caer a la oferta genérica en vez de asumir español.
       idioma_cv: null,
       cv_original_disponible: true,
+      cv_original_url_firmada: null,
       estado: 'activo',
       motivo_fallo: null,
       created_at: '2026-07-29T12:00:00.000Z',

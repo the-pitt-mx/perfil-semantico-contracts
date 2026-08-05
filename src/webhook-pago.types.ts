@@ -24,10 +24,19 @@ import { z } from 'zod';
  */
 
 /**
- * Procesadores soportados. Hoy solo uno; la columna existe para que añadir otro
- * sea aditivo en vez de una migración de renombrado.
+ * Procesadores soportados.
+ *
+ * **Esta lista tiene que ir a la par del enum `procesador_pago` de la base.** Si
+ * la base admite un valor que aquí no está, el panel entero deja de validar: no
+ * falla la compra nueva, falla `GET /perfil` para esa persona, que es mucho peor
+ * porque se lleva por delante lo que ya tenía.
+ *
+ * Ocurrió el 2026-08-05 al entrar OpenPay: la migración 0022 añadió el valor a la
+ * base y esto se quedó en `['paypal']`. La primera compra con tarjeta dejó el
+ * panel de ese candidato en 500. Desde entonces la suite de `infra` concilia
+ * también este enum, además de los tres que ya vigilaba.
  */
-export const ProcesadorPagoSchema = z.enum(['paypal']);
+export const ProcesadorPagoSchema = z.enum(['paypal', 'openpay']);
 export type ProcesadorPago = z.infer<typeof ProcesadorPagoSchema>;
 
 /**

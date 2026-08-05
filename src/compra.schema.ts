@@ -214,7 +214,7 @@ export const CompraSchema = z.object({
   precio_centavos_mxn: z.number().int().nonnegative(),
   temporada: TemporadaSchema,
   estado_pago: EstadoPagoSchema,
-  /** Qué procesador cobró. Hoy siempre `paypal`. */
+  /** Qué procesador cobró: `paypal` o `openpay`. */
   procesador: ProcesadorPagoSchema,
   /**
    * Id de la transacción en el procesador — en PayPal, el id de la **captura**,

@@ -14,8 +14,12 @@ import {
   prometeCv,
   prometeEntregable,
   exigeTerminos,
+  textoTerminos,
+  TEXTO_TERMINOS_COMPRA,
+  TEXTO_TERMINOS_CV,
   CvRedactadoSchema,
-  VERSION_TERMINOS_CV,
+  CheckoutRequestSchema,
+  VERSION_TERMINOS_COMPRA,
 } from '../dist/index.js';
 
 let ok = 0;
@@ -292,25 +296,38 @@ acepta('cv_redactado se otorga a sí mismo y no lo da ningún otro tier', () => 
   if (prometeStrings('cv_redactado')) throw new Error('el CV no entrega strings');
 });
 
-acepta('solo el CV redactado exige aceptar términos', () => {
-  if (!exigeTerminos('cv_redactado')) throw new Error('el CV redactado sí los exige');
-  for (const tier of ['tier_1', 'tier_2', 'tier_1_2', 'tier_3', 'reinicio_perfil']) {
-    if (exigeTerminos(tier)) throw new Error(`${tier} no presenta nada a un tercero`);
+acepta('toda compra de pago exige aceptar el consentimiento; solo `gratis` no', () => {
+  for (const tier of ['tier_1', 'tier_2', 'tier_1_2', 'tier_3', 'reinicio_perfil', 'cv_redactado', 'cv_bilingue']) {
+    if (!exigeTerminos(tier)) throw new Error(`${tier} sí debe pedir consentimiento`);
   }
+  if (exigeTerminos('gratis')) throw new Error('`gratis` no se cobra, no acepta nada');
 });
 
-acepta('la compra guarda qué versión de los términos se aceptó', () => {
+acepta('el CV redactado suma su cláusula al texto; los demás tiers no', () => {
+  const cv = textoTerminos('cv_redactado');
+  if (!cv.includes(TEXTO_TERMINOS_COMPRA)) throw new Error('falta el reconocimiento base');
+  if (!cv.includes(TEXTO_TERMINOS_CV)) throw new Error('falta la cláusula del CV');
+
+  const t1 = textoTerminos('tier_1');
+  if (t1 !== TEXTO_TERMINOS_COMPRA) throw new Error('tier_1 no debe llevar la cláusula del CV');
+});
+
+acepta('la compra guarda qué versión del consentimiento se aceptó', () => {
   // Sin la versión, la fecha no prueba nada: si el texto cambiara, lo aceptado
   // dejaría de ser lo que hoy se muestra.
   const c = CompraSchema.parse({
     ...compraBase,
-    tier: 'cv_redactado',
-    precio_centavos_mxn: 29_900,
-    terminos_aceptados_at: '2026-08-01T12:00:00.000Z',
-    terminos_version: VERSION_TERMINOS_CV,
+    tier: 'tier_1',
+    precio_centavos_mxn: 7_900,
+    terminos_aceptados_at: '2026-08-29T12:00:00.000Z',
+    terminos_version: VERSION_TERMINOS_COMPRA,
   });
-  if (c.terminos_version !== VERSION_TERMINOS_CV) throw new Error('se perdió la versión');
+  if (c.terminos_version !== VERSION_TERMINOS_COMPRA) throw new Error('se perdió la versión');
 });
+
+rechaza('CheckoutRequest sin `terminos_version`: ahora toda compra lo exige', () =>
+  CheckoutRequestSchema.parse({ perfil_id: '11111111-1111-4111-8111-111111111111' }),
+);
 
 acepta('El webhook conserva campos que PayPal añada', () => {
   const r = PayPalWebhookPayloadSchema.parse({

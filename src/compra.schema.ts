@@ -161,15 +161,70 @@ export function prometeCv(tier: Tier): boolean {
 }
 
 /**
- * ¿Este tier exige aceptar los términos antes de cobrar?
+ * ¿Este tier exige aceptar el consentimiento de compra antes de cobrar?
  *
- * Solo el CV redactado: es el único entregable que la persona presenta como suyo
- * ante un tercero, y por tanto el único donde lo que edite después tiene
- * consecuencias para ella.
+ * **Toda compra de pago.** Desde §9.1 de los Términos (2026-08-29) cada compra
+ * registra que el candidato solicitó la ejecución inmediata del servicio y
+ * reconoce que, entregado el resultado, el servicio queda prestado — es lo que
+ * sostiene que no aplique el retracto de cinco días hábiles del art. 56 LFPC.
+ * Los tiers que además redactan un CV suman una cláusula propia; ver
+ * `textoTerminos`.
+ *
+ * `gratis` no se cobra, así que no acepta nada.
  */
 export function exigeTerminos(tier: Tier): boolean {
-  return prometeCv(tier);
+  return tier !== 'gratis';
 }
+
+/**
+ * El reconocimiento que **toda compra de pago** registra antes de cobrar.
+ *
+ * Vive en `contracts` y no en la web porque la versión aceptada se persiste en
+ * `compras.terminos_version`: si el texto cambiara y no quedara constancia de
+ * cuál se aceptó, lo guardado dejaría de probar nada. Cambiar este texto o
+ * `TEXTO_TERMINOS_CV` obliga a subir `VERSION_TERMINOS_COMPRA`.
+ */
+export const TEXTO_TERMINOS_COMPRA =
+  'Entiendo que este es un servicio de análisis y generación que se ejecuta al ' +
+  'confirmar el pago, y solicito que empiece de inmediato. Una vez que el ' +
+  'resultado está disponible en mi panel, el servicio se considera prestado y no ' +
+  'procede la devolución por cambio de opinión, sin perjuicio de las garantías y ' +
+  'los supuestos de reembolso del punto 9 de los Términos.';
+
+/**
+ * Cláusula que se **suma** para los tiers que redactan un CV (`prometeCv`). Antes
+ * era el texto único (`VERSION_TERMINOS_CV`, retirado): el CV es el único
+ * entregable que la persona presenta como suyo ante un tercero, así que lo que
+ * edite después tiene consecuencias para ella.
+ */
+export const TEXTO_TERMINOS_CV =
+  'Además, sobre el CV redactado: se construye solo con lo que dicen mi CV y mi ' +
+  'perfil semántico. Fanware no añade experiencia, títulos ni habilidades que yo ' +
+  'no haya declarado. Lo que edite a partir de aquí es mío; si se infla o se ' +
+  'inventa información, las consecuencias son para mí y Fanware no responde por ' +
+  'ellas.';
+
+/**
+ * El texto completo que se muestra y se acepta en el checkout de `tier`: el
+ * reconocimiento de compra, y la cláusula del CV cuando el tier lo redacta.
+ *
+ * Una sola casilla y un solo número de versión. La versión N mapea de forma
+ * determinista a "qué se mostró" a partir del tier, así que reconstruirlo más
+ * tarde no necesita guardar el texto entero.
+ */
+export function textoTerminos(tier: Tier): string {
+  return prometeCv(tier) ? `${TEXTO_TERMINOS_COMPRA}\n\n${TEXTO_TERMINOS_CV}` : TEXTO_TERMINOS_COMPRA;
+}
+
+/**
+ * Sube cada vez que cambie `TEXTO_TERMINOS_COMPRA` o `TEXTO_TERMINOS_CV`. Se
+ * guarda en `compras.terminos_version`.
+ *
+ * Empieza en 2: la versión 1 fue el texto solo-CV de preproducción
+ * (`VERSION_TERMINOS_CV`, retirado el 2026-08-29), y ninguna compra de un tercero
+ * la registró.
+ */
+export const VERSION_TERMINOS_COMPRA = 2;
 
 /**
  * ¿Hay algo que generar por esta compra?
@@ -251,7 +306,9 @@ export const CompraSchema = z.object({
    */
   entregable_intentos: z.number().int().nonnegative(),
   /**
-   * Cuándo aceptó los términos del CV redactado, o `null` si el tier no los pide.
+   * Cuándo aceptó el consentimiento de compra (§9.1 de los Términos). Toda compra
+   * de pago lo registra desde el 2026-08-29; `null` solo en filas anteriores y en
+   * las `gratis`.
    *
    * Vive en `compras` y **no** en una tabla de entregables a propósito: es parte
    * del contrato, no del contenido. Por eso tiene que sobrevivir a la supresión de
@@ -260,10 +317,11 @@ export const CompraSchema = z.object({
    */
   terminos_aceptados_at: z.iso.datetime().nullable(),
   /**
-   * Qué versión del texto aceptó (`VERSION_TERMINOS_CV`).
+   * Qué versión del texto aceptó (`VERSION_TERMINOS_COMPRA`).
    *
    * Sin esto, guardar la fecha no prueba nada: si el texto cambiara, lo aceptado
-   * dejaría de ser lo que hoy se muestra.
+   * dejaría de ser lo que hoy se muestra. `null` en las filas anteriores al
+   * consentimiento universal y en las `gratis`.
    */
   terminos_version: z.number().int().positive().nullable(),
   /**
@@ -308,16 +366,17 @@ export type CompraServida = z.infer<typeof CompraServidaSchema>;
 export const CheckoutRequestSchema = z.object({
   perfil_id: z.uuid(),
   /**
-   * Qué versión de los términos aceptó, en los tiers que los exigen
-   * (`exigeTerminos`). Ausente en los demás.
+   * La versión del texto de consentimiento (`VERSION_TERMINOS_COMPRA`) que el
+   * candidato aceptó. **Requerida en toda compra**: desde §9.1 de los Términos
+   * cada compra registra la solicitud de ejecución inmediata del servicio.
    *
    * Viaja el **número de versión**, no un booleano: un `acepto: true` no dice
    * *qué* aceptó, y el día que el texto cambie no habría forma de saber si la
    * casilla que marcó decía lo mismo que la de hoy. El Worker lo compara contra
-   * su propia `VERSION_TERMINOS_CV` y rechaza si no coinciden — una web con
+   * su propia `VERSION_TERMINOS_COMPRA` y rechaza si no coinciden — una web con
    * caché vieja estaría recogiendo el consentimiento de un texto que ya no es.
    */
-  terminos_version: z.number().int().positive().optional(),
+  terminos_version: z.number().int().positive(),
 });
 export type CheckoutRequest = z.infer<typeof CheckoutRequestSchema>;
 

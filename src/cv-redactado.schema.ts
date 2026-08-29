@@ -129,20 +129,7 @@ export const CvRedactadoFilaSchema = z.object({
 });
 export type CvRedactadoFila = z.infer<typeof CvRedactadoFilaSchema>;
 
-/**
- * El texto que el candidato acepta antes de comprar (Peter, 2026-08-01).
- *
- * Vive en `contracts` y no en la web porque **la versión aceptada se persiste en
- * la compra**: si el texto cambiara y no quedara constancia de cuál se aceptó, lo
- * guardado dejaría de probar nada. Cambiar este texto obliga a subir
- * `VERSION_TERMINOS_CV`.
- */
-export const TEXTO_TERMINOS_CV =
-  'Este texto se construye solo con lo que dice tu CV y tu perfil semántico. No ' +
-  'añadimos experiencia, títulos ni habilidades que tú no hayas declarado — esa es ' +
-  'la razón por la que sirve. Lo que edites a partir de aquí es tuyo: si se infla o ' +
-  'se inventa información, las consecuencias son para ti y Fanware no responde por ' +
-  'ellas.';
-
-/** Sube cada vez que cambie `TEXTO_TERMINOS_CV`. Se guarda en `compras.terminos_version`. */
-export const VERSION_TERMINOS_CV = 1;
+// El texto que se acepta al comprar y su versión se movieron a `compra.schema.ts`
+// el 2026-08-29: dejaron de ser "los términos del CV" para ser el consentimiento
+// de toda compra (`TEXTO_TERMINOS_COMPRA` + `textoTerminos` + `VERSION_TERMINOS_COMPRA`),
+// y ahí viven junto a `exigeTerminos` y `prometeCv`.

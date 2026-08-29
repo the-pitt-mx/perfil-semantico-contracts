@@ -7,6 +7,31 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.14.0] — 2026-08-29
+
+### Cambiado (breaking)
+- **El consentimiento de compra pasa a ser universal.** `exigeTerminos(tier)`
+  devuelve ahora `true` para **toda compra de pago** (antes solo el CV
+  redactado), y `CheckoutRequest.terminos_version` es **obligatorio** (antes
+  opcional). Nace de §9.1 de los Términos: cada compra registra que el candidato
+  solicitó la ejecución inmediata del servicio y reconoce que, entregado el
+  resultado, el servicio queda prestado — lo que sostiene que no aplique el
+  retracto de cinco días hábiles del art. 56 LFPC. El Worker rechaza con 400
+  cualquier checkout sin la versión vigente.
+- **`VERSION_TERMINOS_CV` (=1) se retira; entra `VERSION_TERMINOS_COMPRA` (=2).**
+  Empieza en 2 a propósito: la v1 fue el texto solo-CV de preproducción y ninguna
+  compra de un tercero la registró, así que no hay ambigüedad en el registro.
+
+### Añadido
+- **`TEXTO_TERMINOS_COMPRA`** — el reconocimiento base que acepta toda compra.
+- **`textoTerminos(tier)`** — el texto completo del checkout: el reconocimiento
+  base, más `TEXTO_TERMINOS_CV` cuando el tier redacta un CV (`prometeCv`). Una
+  sola casilla, un solo número de versión; la versión N mapea de forma
+  determinista a "qué se mostró" a partir del tier.
+- **`TEXTO_TERMINOS_CV`** cambia de significado: era el texto único del CV, ahora
+  es la **cláusula adicional** para los tiers que lo redactan, y se movió de
+  `cv-redactado.schema.ts` a `compra.schema.ts` junto a `exigeTerminos`.
+
 ## [0.10.0] — 2026-08-01
 
 ### Añadido (breaking)

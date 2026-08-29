@@ -1,0 +1,209 @@
+import { z } from 'zod';
+/**
+ * Perfil semántico: el entregable del flujo gratis.
+ *
+ * Alcance del tier gratis (Modelo de Negocio §2):
+ *   perfil semántico + habilidades clave + nombres alternativos de posición
+ *   por tipo de fit, con su leyenda.
+ *
+ * Las vacantes reales en empresas concretas NO viven aquí — son Tier 1/3 y
+ * están en `vacante.schema.ts` como `VacanteRecomendada`. Ver ADR-001 §B.10:
+ * ambas cosas se llaman "posiciones recomendadas" en los documentos de negocio,
+ * y confundirlas es exactamente el bug que este paquete existe para prevenir.
+ */
+// ---------------------------------------------------------------------------
+// Identidad
+// ---------------------------------------------------------------------------
+/** Tabla `clientes`. Identidad mínima del candidato. */
+export const ClienteSchema = z.object({
+    id: z.uuid(),
+    email: z.email(),
+    created_at: z.iso.datetime(),
+});
+/**
+ * Tabla `cvs`. Archivo subido por el cliente, versionado.
+ *
+ * `archivo_path` es la ruta dentro del bucket privado `cv-originales`, no una
+ * URL utilizable. El documento de Implicaciones Técnicas §9 exige URLs firmadas
+ * con expiración corta: la URL se firma al servirla, nunca se persiste.
+ */
+export const CvSchema = z.object({
+    id: z.uuid(),
+    cliente_id: z.uuid(),
+    archivo_path: z.string().min(1),
+    /** Hash del archivo, para detectar resubidas idénticas. */
+    hash: z.string().min(1),
+    uploaded_at: z.iso.datetime(),
+});
+// ---------------------------------------------------------------------------
+// Contenido del perfil (`perfiles_semanticos.contenido_json`)
+// ---------------------------------------------------------------------------
+/** Encabezado del PDF. Los campos nulos se renderizan como "no proporcionado". */
+export const DatosContactoSchema = z.object({
+    nombre_completo: z.string().min(1),
+    /** Título o rol objetivo, no el puesto actual. */
+    titulo_objetivo: z.string().min(1),
+    email: z.email(),
+    telefono: z.string().nullable(),
+    linkedin: z.string().nullable(),
+    ubicacion: z.string().nullable(),
+    formacion_academica: z.string().nullable(),
+    idiomas: z.string().nullable(),
+});
+/** Una fila del bloque "Habilidades clave". */
+export const HabilidadClaveSchema = z.object({
+    nombre: z.string().min(1),
+    /** Cómo la ejecuta en concreto, no una definición genérica. */
+    descripcion: z.string().min(1),
+});
+/**
+ * Los tres tipos de fit. Es el modelo mental reutilizable que el candidato se
+ * lleva (Modelo de Negocio §1), así que sus etiquetas son producto, no detalle
+ * de presentación.
+ */
+export const TipoFitSchema = z.enum(['directo', 'transferible', 'ambicioso']);
+/**
+ * Un nombre alternativo de posición. **No es una vacante**: no tiene empresa ni
+ * enlace. Es "cómo se llama en el mercado lo que ya sabes hacer".
+ */
+export const PosicionAlternativaSchema = z.object({
+    titulo: z.string().min(1),
+    tipo_fit: TipoFitSchema,
+});
+/** Lo que se guarda en `perfiles_semanticos.contenido_json`. */
+export const ContenidoPerfilSchema = z.object({
+    datos_contacto: DatosContactoSchema,
+    /** Síntesis de 3-5 líneas: el valor real más allá de las tareas del CV. */
+    sintesis: z.string().min(1),
+    habilidades_clave: z.array(HabilidadClaveSchema).min(1),
+    posiciones_alternativas: z.array(PosicionAlternativaSchema).min(1),
+    /** Coaching puntual: qué cuantificar o mejorar antes de postularse. */
+    nota_estrategica: z.string().min(1),
+});
+/**
+ * Leyenda de los tipos de fit. **Texto fijo, no personalizable por candidato.**
+ *
+ * Vive aquí y no dentro de `contenido_json` a propósito: duplicarla en cada
+ * perfil generado la volvería imposible de corregir en los perfiles ya
+ * emitidos. `web` y la plantilla del PDF la leen de esta única fuente.
+ */
+export const LEYENDA_FITS = {
+    directo: {
+        etiqueta: 'Fit directo',
+        resumen: 'Mismo trabajo, otro nombre. Ya tienes esta experiencia ejecutada, sin brecha de conocimiento ni de nivel.',
+        explicacion: 'Posiciones donde ya tienes la experiencia exacta; en tu empresa actual el puesto solo tiene un nombre distinto o menos "de mercado".',
+    },
+    transferible: {
+        etiqueta: 'Fit por competencia transferible',
+        resumen: 'Misma habilidad, otro contexto. Ya la tienes; solo necesitas reposicionar cómo la cuentas, no adquirirla.',
+        explicacion: 'La habilidad de fondo es la misma, pero el título o el foco del rol requiere que reposiciones cómo lo cuentas.',
+    },
+    ambicioso: {
+        etiqueta: 'Fit ambicioso',
+        resumen: 'Mismo trabajo, mayor escala. Es tu siguiente escalón jerárquico; conviene desarrollar la narrativa que hoy no está evidenciada en tu CV.',
+        explicacion: 'El siguiente escalón jerárquico. Aquí sí hay una brecha real: tendrías que argumentar que, aunque nunca has tenido ese título exacto, el tamaño de los resultados que ya generaste es evidencia de que puedes operar a ese nivel.',
+    },
+};
+/**
+ * Lo que devuelve el modelo al leer el archivo subido.
+ *
+ * **Existe porque el esquema de `ContenidoPerfil` obliga a producir un perfil.**
+ * Sin esta envoltura, un PDF que no es un CV —un recibo, un contrato, una foto
+ * escaneada— llevaría al modelo a inventar habilidades y puestos para satisfacer
+ * los mínimos del esquema, en contra de la regla de no inventar. Aquí tiene una
+ * salida honesta.
+ *
+ * También es más barato: al devolver `contenido: null` no genera el perfil, y los
+ * tokens de salida son ~2/3 del costo por llamada. Rechazar una subida basura
+ * cuesta menos que procesarla.
+ *
+ * La correlación entre campos (`es_cv: true` ⇒ `contenido` presente) no se
+ * expresa aquí porque la salida estructurada de Claude no admite validaciones
+ * condicionales: se comprueba en el Worker al recibir la respuesta.
+ */
+export const LecturaCvSchema = z.object({
+    /** `false` si el documento no es un CV o está tan incompleto que no da para un perfil. */
+    es_cv: z.boolean(),
+    /**
+     * Por qué no se pudo generar, en una frase dirigida a la persona que subió el
+     * archivo. `null` cuando `es_cv` es `true`.
+     */
+    motivo: z.string().nullable(),
+    /** El perfil. `null` cuando `es_cv` es `false`. */
+    contenido: ContenidoPerfilSchema.nullable(),
+});
+// ---------------------------------------------------------------------------
+// Tabla `perfiles_semanticos`
+// ---------------------------------------------------------------------------
+/**
+ * Estado del perfil.
+ *
+ * `reemplazado` es el único que fija el documento fuente §3: al reiniciar
+ * perfil el anterior no se borra, se archiva, para no romper las compras
+ * históricas que apuntan a él. Los otros tres se añadieron en Fase 1 porque la
+ * generación es asíncrona y puede fallar (ver ADR-001 §B.1).
+ *
+ * `esperando_correo` es anterior a todos ellos y existe por dinero: el perfil se
+ * crea al subir el CV, pero **no se encola nada** hasta que el candidato abre el
+ * enlace de acceso. Antes se generaba de inmediato, así que un correo inventado
+ * costaba ~$1.85 MXN igual que uno real, sin tope ni rate limit. Es un estado y
+ * no un booleano porque el cron de recuperación reencola lo que lleve rato en
+ * `generando`: dejarlo ahí se habría generado solo (migración 0021).
+ */
+export const EstadoPerfilSchema = z.enum([
+    'esperando_correo',
+    'generando',
+    'activo',
+    'reemplazado',
+    'fallido',
+]);
+export const PerfilSemanticoSchema = z.object({
+    id: z.uuid(),
+    cliente_id: z.uuid(),
+    cv_id: z.uuid(),
+    /** Incrementa con cada reinicio de perfil. Empieza en 1. */
+    version: z.number().int().positive(),
+    /**
+     * Nulo mientras el perfil está `generando`, y también si quedó `fallido`.
+     * Solo `activo` garantiza contenido — la base lo impone con un CHECK, así que
+     * un consumidor que asuma que siempre viene revienta al leer un perfil en curso.
+     */
+    contenido: ContenidoPerfilSchema.nullable(),
+    /** Ruta en el bucket privado `perfiles-pdf`. Se firma al servir. */
+    pdf_path: z.string().nullable(),
+    estado: EstadoPerfilSchema,
+    /**
+     * Por qué falló, redactado para mostrárselo al candidato tal cual.
+     *
+     * Solo viene con `estado: 'fallido'`. No es un código ni un mensaje técnico:
+     * explica qué pasó y qué debe subir en su lugar — el caso típico es que el
+     * archivo no fuera un CV. Va en el panel y no solo en el correo, porque el
+     * correo puede no llegar y reintentar le cuesta un tier de pago.
+     */
+    motivo_fallo: z.string().nullable(),
+    created_at: z.iso.datetime(),
+});
+// ---------------------------------------------------------------------------
+// Contratos de API (ADR-001 §5)
+// ---------------------------------------------------------------------------
+/**
+ * `POST /cv`. El archivo viaja como multipart aparte; aquí van los metadatos.
+ *
+ * `cliente_id` presente distingue un **reinicio de perfil legítimo** de un
+ * abuso del flujo gratis — el documento fuente §7 lo exige explícitamente para
+ * el rate limiting.
+ */
+export const UploadCvRequestSchema = z.object({
+    email: z.email(),
+    cliente_id: z.uuid().nullable(),
+});
+/** Respuesta de `POST /cv`. La generación es asíncrona: nace en `generando`. */
+export const PerfilSemanticoResponseSchema = z.object({
+    perfil_id: z.uuid(),
+    cliente_id: z.uuid(),
+    estado: EstadoPerfilSchema,
+});
+/** `POST /access/resend` — reenvía el magic link al email registrado. */
+export const ResendAccessRequestSchema = z.object({
+    email: z.email(),
+});

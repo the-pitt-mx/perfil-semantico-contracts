@@ -1,6 +1,9 @@
 node_modules/
-dist/
 build/
+# `dist/` NO se ignora: este paquete se consume como dependencia git por tag y
+# npm 12 ya no ejecuta el script `prepare` al instalar, asi que el consumidor
+# necesita el build ya hecho en el repo. Se reconstruye con `npm run build`
+# antes de cada tag (ver CHANGELOG).
 .env
 .env.local
 .env.*.local

@@ -3,6 +3,12 @@
 Este paquete se consume como dependencia git por tag. **Cada release debe llevar
 un tag `vX.Y.Z`**; sin tag, `api` y `web` no pueden fijar una versión.
 
+**Antes de taguear:** `npm run build` y commitear `dist/`. Desde 2026-08-29 `dist/`
+está versionado —npm 12 ya no ejecuta el script `prepare` al instalar una
+dependencia git, así que el consumidor recibe lo que haya en el repo—. Un tag con
+un `dist/` viejo entrega código viejo sin avisar. Los consumidores necesitan
+además `allow-git=root` en su `.npmrc`.
+
 Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).

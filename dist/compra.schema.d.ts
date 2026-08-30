@@ -11,7 +11,8 @@ import { z } from 'zod';
  * Lo que se cobra en una transacción (Modelo de Negocio §2).
  *
  * - `gratis` — perfil semántico, habilidades y nombres alternativos de posición.
- * - `tier_1` — 5 vacantes reales del día con % de fit + cover letter por cada una.
+ * - `tier_1` — hasta 5 vacantes reales con % de fit + guía para redactar la
+ *   cover letter + Perfil Semántico Ejecutivo (ADR-001 §A.48).
  * - `tier_2` — solo los strings booleanos, comprados **después** de Tier 1.
  * - `tier_1_2` — Tier 1 y Tier 2 en un mismo checkout, cuando el cliente acepta
  *   el upsell antes de pagar.
@@ -115,6 +116,19 @@ export declare function prometeStrings(tier: Tier): boolean;
 /** ¿Este cobro promete un CV redactado? */
 export declare function prometeCv(tier: Tier): boolean;
 /**
+ * ¿Este cobro entrega el Perfil Semántico Ejecutivo (ADR-001 §A.48)?
+ *
+ * Va con Tier 1, no con Tier 3: es siembra de marca hacia reclutadores y por eso
+ * entra en el tier de más volumen. `tier_1`, `tier_1_2` y `reinicio_perfil` sí;
+ * `tier_3` (refill) no. Se resuelve con `TIERS_OTORGADOS` y no comparando el tier
+ * a mano, o se olvidaría `reinicio_perfil`.
+ *
+ * Tres consumidores que tienen que coincidir, como en `prometeVacantes`: el
+ * generador (lo renderiza al entregar), el panel (decide si mostrar la descarga)
+ * y la supresión ARCO (la migración 0032 limpia su ruta).
+ */
+export declare function prometeEjecutivo(tier: Tier): boolean;
+/**
  * ¿Este tier exige aceptar el consentimiento de compra antes de cobrar?
  *
  * **Toda compra de pago.** Desde §9.1 de los Términos (2026-08-29) cada compra
@@ -204,6 +218,7 @@ export declare const CompraSchema: z.ZodObject<{
     }>;
     transaccion_id: z.ZodNullable<z.ZodString>;
     guia_path: z.ZodNullable<z.ZodString>;
+    perfil_ejecutivo_path: z.ZodNullable<z.ZodString>;
     entregable_estado: z.ZodEnum<{
         pendiente: "pendiente";
         generando: "generando";
@@ -269,6 +284,7 @@ export declare const CompraServidaSchema: z.ZodObject<{
     created_at: z.ZodISODateTime;
     updated_at: z.ZodISODateTime;
     guia_url_firmada: z.ZodNullable<z.ZodURL>;
+    perfil_ejecutivo_url_firmada: z.ZodNullable<z.ZodURL>;
 }, z.core.$strip>;
 export type CompraServida = z.infer<typeof CompraServidaSchema>;
 /**

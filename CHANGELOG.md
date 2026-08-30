@@ -13,6 +13,31 @@ Formato: [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 Versionado: [SemVer](https://semver.org/lang/es/) — un cambio breaking sin subir
 major rompe silenciosamente al otro repo (ADR-001 §9).
 
+## [0.15.0] — 2026-08-29
+
+### Cambiado (breaking)
+- **`CompraSchema` gana `perfil_ejecutivo_path` (nullable, requerido).** Es el
+  Perfil Semántico Ejecutivo de Tier 1 (ADR-001 §A.48): una página para
+  reclutador con nombre, título, síntesis y habilidades clave del perfil,
+  reformateadas de forma determinista. Cuelga de la compra por consistencia con
+  `guia_path`. Cualquier `CompraSchema.parse()` sobre un objeto que no traiga la
+  clave falla — `api` la obtiene de la columna nueva de la migración 0032.
+- **`CompraServidaSchema` gana `perfil_ejecutivo_url_firmada` (nullable,
+  requerido)** y omite `perfil_ejecutivo_path`, igual que ya hacía con la guía.
+  Afecta a `PerfilCompletoResponseSchema.compras`.
+
+### Añadido
+- **`prometeEjecutivo(tier)`** — `true` para los tiers que otorgan Tier 1
+  (`tier_1`, `tier_1_2`, `reinicio_perfil`); `false` para `tier_3`. Se resuelve
+  con `TIERS_OTORGADOS`, como el resto de los `promete*`. Tres consumidores que
+  deben coincidir: el generador, el panel y la supresión ARCO.
+- El docstring de `tier_1` en `TierSchema` deja de decir "cover letter por cada
+  una" (obsoleto desde §A.22): ahora es guía + Ejecutivo.
+
+### Nota
+- `prometeEntregable` no cambia: todo tier con Ejecutivo ya devuelve `true` por
+  `prometeVacantes`, así que el panel ya espera el `generando`.
+
 ## [0.14.0] — 2026-08-29
 
 ### Cambiado (breaking)

@@ -12,7 +12,8 @@ import { ProcesadorPagoSchema } from './webhook-pago.types.js';
  * Lo que se cobra en una transacción (Modelo de Negocio §2).
  *
  * - `gratis` — perfil semántico, habilidades y nombres alternativos de posición.
- * - `tier_1` — 5 vacantes reales del día con % de fit + cover letter por cada una.
+ * - `tier_1` — hasta 5 vacantes reales con % de fit + guía para redactar la
+ *   cover letter + Perfil Semántico Ejecutivo (ADR-001 §A.48).
  * - `tier_2` — solo los strings booleanos, comprados **después** de Tier 1.
  * - `tier_1_2` — Tier 1 y Tier 2 en un mismo checkout, cuando el cliente acepta
  *   el upsell antes de pagar.
@@ -141,6 +142,21 @@ export function prometeCv(tier) {
     return TIERS_OTORGADOS[tier].includes('cv_redactado');
 }
 /**
+ * ¿Este cobro entrega el Perfil Semántico Ejecutivo (ADR-001 §A.48)?
+ *
+ * Va con Tier 1, no con Tier 3: es siembra de marca hacia reclutadores y por eso
+ * entra en el tier de más volumen. `tier_1`, `tier_1_2` y `reinicio_perfil` sí;
+ * `tier_3` (refill) no. Se resuelve con `TIERS_OTORGADOS` y no comparando el tier
+ * a mano, o se olvidaría `reinicio_perfil`.
+ *
+ * Tres consumidores que tienen que coincidir, como en `prometeVacantes`: el
+ * generador (lo renderiza al entregar), el panel (decide si mostrar la descarga)
+ * y la supresión ARCO (la migración 0032 limpia su ruta).
+ */
+export function prometeEjecutivo(tier) {
+    return TIERS_OTORGADOS[tier].includes('tier_1');
+}
+/**
  * ¿Este tier exige aceptar el consentimiento de compra antes de cobrar?
  *
  * **Toda compra de pago.** Desde §9.1 de los Términos (2026-08-29) cada compra
@@ -261,6 +277,17 @@ export const CompraSchema = z.object({
      * la incluyen. Se firma al servir, nunca se persiste firmada.
      */
     guia_path: z.string().nullable(),
+    /**
+     * Ruta en Storage del **Perfil Semántico Ejecutivo** (ADR-001 §A.48): una
+     * página para reclutador con el nombre, el título, la síntesis y las
+     * habilidades clave del perfil, reformateadas de forma determinista.
+     *
+     * Cuelga de la compra por consistencia con `guia_path`: el perfil es la vía
+     * gratuita, la compra es lo pagado. Nula mientras no se genera y en los tiers
+     * que no otorgan Tier 1 (ver `prometeEjecutivo`). Se firma al servir, nunca se
+     * persiste firmada.
+     */
+    perfil_ejecutivo_path: z.string().nullable(),
     entregable_estado: EstadoEntregableSchema,
     /**
      * Por qué no se pudo entregar, redactado para leerse tal cual en el panel.
@@ -317,9 +344,17 @@ export const CompraSchema = z.object({
  * fácil filtrar una ruta cruda al cliente —que no le sirve de nada, porque el
  * bucket es privado— o persistir una URL que caduca en minutos.
  */
-export const CompraServidaSchema = CompraSchema.omit({ guia_path: true }).extend({
+export const CompraServidaSchema = CompraSchema.omit({
+    guia_path: true,
+    perfil_ejecutivo_path: true,
+}).extend({
     /** URL firmada de la guía, o `null` si todavía no existe o el tier no la incluye. */
     guia_url_firmada: z.url().nullable(),
+    /**
+     * URL firmada del Perfil Semántico Ejecutivo, o `null` si todavía no existe o
+     * el tier no otorga Tier 1.
+     */
+    perfil_ejecutivo_url_firmada: z.url().nullable(),
 });
 // ---------------------------------------------------------------------------
 // Contratos de API (ADR-001 §5)

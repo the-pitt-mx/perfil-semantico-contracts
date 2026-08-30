@@ -12,6 +12,7 @@ import {
   prometeVacantes,
   prometeStrings,
   prometeCv,
+  prometeEjecutivo,
   prometeEntregable,
   exigeTerminos,
   textoTerminos,
@@ -82,6 +83,7 @@ const compraBase = {
   estado_pago: 'pendiente',
   transaccion_id: null,
   guia_path: null,
+  perfil_ejecutivo_path: null,
   entregable_estado: 'pendiente',
   entregable_motivo_fallo: null,
   entregable_intentos: 0,
@@ -158,14 +160,16 @@ acepta('Compra con la ruta de su guía', () =>
     guia_path: '44444444-4444-4444-8444-444444444444/guia-abc.pdf',
   }));
 
-acepta('CompraServida trae la guía ya firmada', () => {
-  const { guia_path, ...resto } = compraBase;
+acepta('CompraServida trae la guía y el Ejecutivo ya firmados', () => {
+  const { guia_path, perfil_ejecutivo_path, ...resto } = compraBase;
   const c = CompraServidaSchema.parse({
     ...resto,
     guia_url_firmada: 'https://storage.ejemplo.com/guia.pdf?token=abc',
+    perfil_ejecutivo_url_firmada: 'https://storage.ejemplo.com/ejecutivo.pdf?token=abc',
   });
-  // La ruta cruda no llega al navegador: el bucket es privado y no le sirve.
-  if ('guia_path' in c) throw new Error('la ruta se filtró al tipo servido');
+  // Las rutas crudas no llegan al navegador: el bucket es privado y no le sirven.
+  if ('guia_path' in c) throw new Error('la ruta de la guía se filtró al tipo servido');
+  if ('perfil_ejecutivo_path' in c) throw new Error('la ruta del Ejecutivo se filtró al tipo servido');
 });
 
 // El pago y la entrega fallan por separado: esto es lo que permite nombrar el
@@ -198,7 +202,7 @@ acepta('Entregado sin ninguna vacante: la entrega correcta puede venir vacía', 
     perfil: { ...perfilBase, pdf_url_firmada: null, idioma_cv: 'es', cv_original_disponible: true, cv_original_url_firmada: null },
     compras: [
       (() => {
-        const { guia_path, ...resto } = compraBase;
+        const { guia_path, perfil_ejecutivo_path, ...resto } = compraBase;
         return {
           ...resto,
           tier: 'tier_1',
@@ -207,6 +211,7 @@ acepta('Entregado sin ninguna vacante: la entrega correcta puede venir vacía', 
           entregable_estado: 'entregado',
           entregable_intentos: 1,
           guia_url_firmada: 'https://storage.ejemplo.com/guia.pdf?token=abc',
+          perfil_ejecutivo_url_firmada: 'https://storage.ejemplo.com/ejecutivo.pdf?token=abc',
         };
       })(),
     ],
@@ -227,6 +232,17 @@ acepta('reinicio_perfil promete vacantes y strings, como tier_1_2', () => {
   if (prometeVacantes('tier_2')) throw new Error('tier_2 no entrega vacantes');
   if (prometeStrings('tier_1')) throw new Error('tier_1 suelto no entrega strings');
   if (prometeEntregable('gratis')) throw new Error('gratis no entrega nada por esta vía');
+});
+
+// El Ejecutivo va con Tier 1, no con Tier 3 (ADR-001 §A.48): es siembra de marca
+// y por eso entra en el tier de más volumen, no en el refill.
+acepta('el Perfil Semántico Ejecutivo se entrega con Tier 1, nunca con Tier 3', () => {
+  for (const tier of ['tier_1', 'tier_1_2', 'reinicio_perfil']) {
+    if (!prometeEjecutivo(tier)) throw new Error(`${tier} debía entregar el Ejecutivo`);
+  }
+  for (const tier of ['gratis', 'tier_2', 'tier_3', 'cv_redactado', 'cv_bilingue']) {
+    if (prometeEjecutivo(tier)) throw new Error(`${tier} no debía entregar el Ejecutivo`);
+  }
 });
 
 const cvRedactado = {
@@ -460,8 +476,12 @@ rechaza('una vacante sin motivo: el porcentaje solo se lee como arbitrario', () 
   }));
 
 rechaza('CompraServida con una URL de guía que no es URL', () => {
-  const { guia_path, ...resto } = compraBase;
-  return CompraServidaSchema.parse({ ...resto, guia_url_firmada: 'guia-abc.pdf' });
+  const { guia_path, perfil_ejecutivo_path, ...resto } = compraBase;
+  return CompraServidaSchema.parse({
+    ...resto,
+    guia_url_firmada: 'guia-abc.pdf',
+    perfil_ejecutivo_url_firmada: null,
+  });
 });
 
 rechaza('un tipo_fit inventado', () =>

@@ -88,7 +88,7 @@ npm install
 npm test
 ```
 
-`npm test` compila primero y luego corre `test/schemas.test.mjs`: 22 casos, incluidos los
+`npm test` compila primero y luego corre `test/schemas.test.mjs`: 51 casos, incluidos los
 que **deben** rechazarse. Un esquema que acepta todo no valida nada, así que la mitad de la
 suite son datos inválidos.
 

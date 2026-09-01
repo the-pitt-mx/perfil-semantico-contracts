@@ -109,6 +109,7 @@ export declare const PerfilCompletoResponseSchema: z.ZodObject<{
         updated_at: z.ZodISODateTime;
         guia_url_firmada: z.ZodNullable<z.ZodURL>;
         perfil_ejecutivo_url_firmada: z.ZodNullable<z.ZodURL>;
+        retro_url_firmada: z.ZodNullable<z.ZodURL>;
     }, z.core.$strip>>;
     vacantes: z.ZodArray<z.ZodObject<{
         id: z.ZodUUID;

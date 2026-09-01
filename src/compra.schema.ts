@@ -317,6 +317,16 @@ export const CompraSchema = z.object({
    * persiste firmada.
    */
   perfil_ejecutivo_path: z.string().nullable(),
+  /**
+   * Ruta en Storage de la **retro del perfil** (ADR-001 §A.58): el análisis
+   * punto por punto de qué cambió entre el CV nuevo y la `nota_estrategica` del
+   * perfil anterior.
+   *
+   * Solo la lleva `reinicio_perfil` —es lo que distingue un reinicio de una
+   * simple regeneración—. Nula en el resto de tiers y mientras no se genera. Se
+   * firma al servir.
+   */
+  retro_path: z.string().nullable(),
   entregable_estado: EstadoEntregableSchema,
   /**
    * Por qué no se pudo entregar, redactado para leerse tal cual en el panel.
@@ -378,6 +388,7 @@ export type Compra = z.infer<typeof CompraSchema>;
 export const CompraServidaSchema = CompraSchema.omit({
   guia_path: true,
   perfil_ejecutivo_path: true,
+  retro_path: true,
 }).extend({
   /** URL firmada de la guía, o `null` si todavía no existe o el tier no la incluye. */
   guia_url_firmada: z.url().nullable(),
@@ -386,6 +397,11 @@ export const CompraServidaSchema = CompraSchema.omit({
    * el tier no otorga Tier 1.
    */
   perfil_ejecutivo_url_firmada: z.url().nullable(),
+  /**
+   * URL firmada de la retro del perfil, o `null` si todavía no existe o el tier
+   * no es `reinicio_perfil`.
+   */
+  retro_url_firmada: z.url().nullable(),
 });
 export type CompraServida = z.infer<typeof CompraServidaSchema>;
 

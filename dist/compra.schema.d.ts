@@ -219,6 +219,7 @@ export declare const CompraSchema: z.ZodObject<{
     transaccion_id: z.ZodNullable<z.ZodString>;
     guia_path: z.ZodNullable<z.ZodString>;
     perfil_ejecutivo_path: z.ZodNullable<z.ZodString>;
+    retro_path: z.ZodNullable<z.ZodString>;
     entregable_estado: z.ZodEnum<{
         pendiente: "pendiente";
         generando: "generando";
@@ -285,6 +286,7 @@ export declare const CompraServidaSchema: z.ZodObject<{
     updated_at: z.ZodISODateTime;
     guia_url_firmada: z.ZodNullable<z.ZodURL>;
     perfil_ejecutivo_url_firmada: z.ZodNullable<z.ZodURL>;
+    retro_url_firmada: z.ZodNullable<z.ZodURL>;
 }, z.core.$strip>;
 export type CompraServida = z.infer<typeof CompraServidaSchema>;
 /**

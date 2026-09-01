@@ -267,6 +267,20 @@ export const CompraSchema = z.object({
      */
     transaccion_id: z.string().nullable(),
     /**
+     * Id de la **orden** (PayPal) o del **cargo** (OpenPay) en el procesador, escrito
+     * por el checkout justo después de crearlo (ADR-001 §A.59, Fase 9).
+     *
+     * No es `transaccion_id` —ese es la captura de PayPal, y solo aparece cuando el
+     * pago se aplica—. Este se escribe **antes** de mandar al candidato a pagar, y
+     * es lo que permite que `reconcile-pending` le pregunte al procesador "¿esta
+     * compra se cobró?" sin depender de que el navegador vuelva. Nulo en compras
+     * anteriores a Fase 9 y en el instante entre crear la fila y crear la orden.
+     *
+     * Se omite de `CompraServidaSchema`: el panel no lo necesita y es un id interno
+     * del procesador.
+     */
+    procesador_ref: z.string().nullable(),
+    /**
      * Ruta en Storage de la **guía para redactar la cover letter** (ADR-001 §A.22).
      *
      * Cuelga de la compra y no de cada vacante porque es **una sola guía**, no una
@@ -358,6 +372,9 @@ export const CompraServidaSchema = CompraSchema.omit({
     guia_path: true,
     perfil_ejecutivo_path: true,
     retro_path: true,
+    // Id interno del procesador, solo para `reconcile-pending` (§A.59). El panel no
+    // lo usa.
+    procesador_ref: true,
 }).extend({
     /** URL firmada de la guía, o `null` si todavía no existe o el tier no la incluye. */
     guia_url_firmada: z.url().nullable(),

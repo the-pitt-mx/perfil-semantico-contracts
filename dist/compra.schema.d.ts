@@ -217,6 +217,7 @@ export declare const CompraSchema: z.ZodObject<{
         openpay: "openpay";
     }>;
     transaccion_id: z.ZodNullable<z.ZodString>;
+    procesador_ref: z.ZodNullable<z.ZodString>;
     guia_path: z.ZodNullable<z.ZodString>;
     perfil_ejecutivo_path: z.ZodNullable<z.ZodString>;
     retro_path: z.ZodNullable<z.ZodString>;

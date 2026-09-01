@@ -82,6 +82,7 @@ const compraBase = {
   temporada: 1,
   estado_pago: 'pendiente',
   transaccion_id: null,
+  procesador_ref: null,
   guia_path: null,
   perfil_ejecutivo_path: null,
   retro_path: null,
@@ -162,7 +163,7 @@ acepta('Compra con la ruta de su guía', () =>
   }));
 
 acepta('CompraServida trae la guía y el Ejecutivo ya firmados', () => {
-  const { guia_path, perfil_ejecutivo_path, retro_path, ...resto } = compraBase;
+  const { guia_path, perfil_ejecutivo_path, retro_path, procesador_ref, ...resto } = compraBase;
   const c = CompraServidaSchema.parse({
     ...resto,
     guia_url_firmada: 'https://storage.ejemplo.com/guia.pdf?token=abc',
@@ -173,6 +174,7 @@ acepta('CompraServida trae la guía y el Ejecutivo ya firmados', () => {
   if ('guia_path' in c) throw new Error('la ruta de la guía se filtró al tipo servido');
   if ('perfil_ejecutivo_path' in c) throw new Error('la ruta del Ejecutivo se filtró al tipo servido');
   if ('retro_path' in c) throw new Error('la ruta de la retro se filtró al tipo servido');
+  if ('procesador_ref' in c) throw new Error('el id de orden del procesador se filtró al tipo servido');
 });
 
 // El pago y la entrega fallan por separado: esto es lo que permite nombrar el
@@ -205,7 +207,7 @@ acepta('Entregado sin ninguna vacante: la entrega correcta puede venir vacía', 
     perfil: { ...perfilBase, pdf_url_firmada: null, idioma_cv: 'es', cv_original_disponible: true, cv_original_url_firmada: null },
     compras: [
       (() => {
-        const { guia_path, perfil_ejecutivo_path, retro_path, ...resto } = compraBase;
+        const { guia_path, perfil_ejecutivo_path, retro_path, procesador_ref, ...resto } = compraBase;
         return {
           ...resto,
           tier: 'tier_1',
@@ -480,7 +482,7 @@ rechaza('una vacante sin motivo: el porcentaje solo se lee como arbitrario', () 
   }));
 
 rechaza('CompraServida con una URL de guía que no es URL', () => {
-  const { guia_path, perfil_ejecutivo_path, retro_path, ...resto } = compraBase;
+  const { guia_path, perfil_ejecutivo_path, retro_path, procesador_ref, ...resto } = compraBase;
   return CompraServidaSchema.parse({
     ...resto,
     guia_url_firmada: 'guia-abc.pdf',
@@ -490,7 +492,7 @@ rechaza('CompraServida con una URL de guía que no es URL', () => {
 });
 
 acepta('CompraServida con la retro de un reinicio ya firmada', () => {
-  const { guia_path, perfil_ejecutivo_path, retro_path, ...resto } = compraBase;
+  const { guia_path, perfil_ejecutivo_path, retro_path, procesador_ref, ...resto } = compraBase;
   const c = CompraServidaSchema.parse({
     ...resto,
     tier: 'reinicio_perfil',

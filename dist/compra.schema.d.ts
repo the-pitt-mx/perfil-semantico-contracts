@@ -82,6 +82,29 @@ export declare const EstadoPagoSchema: z.ZodEnum<{
 }>;
 export type EstadoPago = z.infer<typeof EstadoPagoSchema>;
 /**
+ * Ciclo de una comisión del programa de afiliados (migración 0038,
+ * DISENO-programa-de-referidos.md).
+ *
+ * Está aquí, y en la lista `enumsEsperados` de la suite de `infra`, por la misma
+ * razón que `estado_pago` y `procesador_pago`: es **la misma lista escrita dos
+ * veces** —en la base y aquí— y sin algo que las concilie, un valor añadido a la
+ * base sin tocar esto rompería en silencio cualquier respuesta que lo incluya.
+ * En v1 el afiliado no tiene panel, así que hoy nada del contrato lo devuelve;
+ * el enum vive aquí igualmente para que la conciliación exista desde el día uno.
+ *
+ * - `pendiente` — registrada, dentro de la ventana de retención (30 días).
+ * - `confirmada` — pasó la retención sin reembolso; entra al próximo corte.
+ * - `pagada` — Fanware transfirió contra CFDI y lo marcó.
+ * - `revertida` — la compra se reembolsó o se contracargó.
+ */
+export declare const EstadoComisionSchema: z.ZodEnum<{
+    pendiente: "pendiente";
+    pagada: "pagada";
+    confirmada: "confirmada";
+    revertida: "revertida";
+}>;
+export type EstadoComision = z.infer<typeof EstadoComisionSchema>;
+/**
  * En qué punto va el entregable de una compra.
  *
  * Es distinto de `estado_pago` y hay que resistir la tentación de juntarlos: el
